@@ -2,7 +2,7 @@
 name = "space-traj-opt"
 version = "0.1.0"
 description = ""
-authors = ["Your Name <hassanarif87@gmail.com>"]
+authors = ["Hassan Arif <hassanarif87@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
@@ -15,9 +15,8 @@ jupyter = "^1.0.0"
 pint = "^0.23"
 poliastro = "^0.17.0"
 sympy = "^1.12"
-nlopt = "^2.7.1"
-getgfs = "^1.1.0"
-dataclasses-json = "^0.6.6"
+jax = "^0.4.35"
+diffrax = "^0.6.0"
 
 
 [build-system]

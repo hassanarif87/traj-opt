@@ -20,40 +20,62 @@ def plot_axis(axis=None, id=1, line_type='solid', fig=None):
     return fig
 
 
-def plot(x, y, xlabel=None, ylabel=None, title=None, trace_names=None):
-    """
-    Generate a Plotly plot.
-
+def plot(x, y, y2=None, xlabel=None, ylabel=None, title=None, trace_names=None):
+    """Generate a Plotly plot with support for a secondary y-axis.
     Args:
         x: List or array-like, x values.
-        y: Array-like or list of array-like, y values.
-        xlabel: (Optional) String, label for the x-axis. Default is None.
-        ylabel: (Optional) String, label for the y-axis. Default is None.
-        title: (Optional) String, title of the plot. Default is None.
+        y: Array-like or list of array-like, y values for the primary y-axis.
+        y2: (Optional) Array-like or list of array-like, y values for the secondary y-axis.
+        xlabel: (Optional) String, label for the x-axis.
+        ylabel: (Optional) Tuple of strings or a single string, labels for y-axes. 
+                If tuple, applies to both y1 and y2; if single string, applies to y1 only.
+        title: (Optional) String, title of the plot.
         trace_names: (Optional) List of strings, names for each trace. Default is None.
 
     Returns:
-        None (displays the plot).
+        fig: Plotly Figure (displays the plot).
     """
 
     # Convert y to a list of arrays if it's not already
     if not isinstance(y, list):
         y = [y]
 
-    # Create traces
-    traces = []
-    if trace_names is None:
-        trace_names = ['Trace {}'.format(i+1) for i in range(len(y))]
+    # Convert y2 to a list of arrays if it's provided
+    if y2 is not None and not isinstance(y2, list):
+        y2 = [y2]
 
-    for i, name in enumerate(trace_names):
-        trace = go.Scatter(x=x, y=y[i], mode='lines', name=name)
+    # Set default trace names if none are provided
+    if trace_names is None:
+        trace_names = ['Trace {}'.format(i + 1) for i in range(len(y) + (len(y2) if y2 else 0))]
+
+    # Create traces for primary y-axis
+    traces = []
+    for i, data in enumerate(y):
+        trace = go.Scatter(x=x, y=data, mode='lines', name=trace_names[i], yaxis="y1")
         traces.append(trace)
 
-    # Create layout
-    layout = go.Layout(title=title, xaxis=dict(title=xlabel), yaxis=dict(title=ylabel))
+    # Create traces for secondary y-axis if y2 data is provided
+    if y2:
+        for i, data in enumerate(y2, start=len(y)):
+            trace = go.Scatter(x=x, y=data, mode='lines', name=trace_names[i], yaxis="y2", line=dict(dash='dash'))
+            traces.append(trace)
 
-    # Create figure
+    # Set labels for y-axis based on ylabel parameter
+    if isinstance(ylabel, tuple):
+        y1_label, y2_label = ylabel
+    else:
+        y1_label, y2_label = ylabel, None
+
+    # Define layout with secondary y-axis if y2 data is provided
+    layout = go.Layout(
+        title=title,
+        xaxis=dict(title=xlabel),
+        yaxis=dict(title=y1_label),
+        yaxis2=dict(title=y2_label, overlaying='y', side='right', showgrid=False) if y2 else None,
+        template="plotly"
+    )
+
+    # Create and display figure
     fig = go.Figure(data=traces, layout=layout)
-
-    # Display the figure
     fig.show()
+    return fig
