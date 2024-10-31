@@ -78,4 +78,4 @@ def plot(x, y, y2=None, xlabel=None, ylabel=None, title=None, trace_names=None):
     # Create and display figure
     fig = go.Figure(data=traces, layout=layout)
     fig.show()
-    return fig
+    #return fig
