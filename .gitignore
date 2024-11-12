@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.pyc
+
+# Poetry
+/.venv/
+.poetry/
+*.egg-info/
+dist/
+.build/
+
+# IDE/Editor
+.vscode/
+.idea/
+ 
+*/**/scratch_*
