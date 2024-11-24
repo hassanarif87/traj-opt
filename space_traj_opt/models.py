@@ -30,9 +30,9 @@ def dynamics(t: float, x: npt.ArrayLike, params) -> npt.ArrayLike:
     drag = 0.5 * rho * CdA * v_sq
     dx[0] = x[2]
     dx[1] = x[3]
-    print(v_mag)
-    dx[2] =  (thrust * cos_theta ) / x[4] - drag * np.divide(x[2], v_mag, where=v_mag!=0.)
-    dx[3] =  (thrust * sin_theta )  / x[4] - STANDARD_GRAV - drag * np.divide(x[3], v_mag, where=v_mag!=0.)
+    dx[2] =  (thrust * cos_theta - drag * np.divide(x[2], v_mag, where=v_mag!=0.) ) / x[4] #
+    dx[3] =  (thrust * sin_theta - drag * np.divide(x[3], v_mag, where=v_mag!=0.) )  / x[4] - STANDARD_GRAV #
+
     dx[4] =  -thrust / STANDARD_GRAV / Isp
     return dx
 
@@ -133,8 +133,8 @@ def control(t: float, x: np.array, params:tuple) -> float:
     elif ctrl_type == 1:
         return zero_alpha(t, x, ctrl_param)
     elif ctrl_type == 2:
-        return polynomial_steering(t, x, ctrl_param)
-    elif ctrl_type == 3:
         return lts_control(t, x, ctrl_param)
+    elif ctrl_type == 3:
+        return polynomial_steering(t, x, ctrl_param)
     else:
         print("Control law not define")
