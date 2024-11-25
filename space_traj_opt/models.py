@@ -1,6 +1,7 @@
 import numba
 import numpy as np
 import numpy.typing as npt
+import enum
 
 STANDARD_GRAV = 9.80665
 
@@ -114,27 +115,32 @@ def lts_control(t: float, x: np.array , params: tuple) -> float:
     a,b = params
     return np.arctan(a*t+ b)
 
+class CtrlMode(enum.Enum):
+    """Enum class defining control mode
+    """
+    ANGLE_STEER = 1
+    ZERO_ALPHA = 2
+    LTS = 3
+    POLYNOMIAL = 3
 
 #@numba.njit
 def control(t: float, x: np.array, params:tuple) -> float:
     """Functions selects the parameterized control scheme and returns the desired pitch angle
-
     Args:
         t : time
         x : Vehicle state
         params : Tuple of parameters containing the control type and control law parameters
-
     Returns:
         Desired pitch
     """
-    ctrl_type, ctrl_param= params
-    if ctrl_type == 0:
+    ctrl_mode, ctrl_param= params
+    if ctrl_mode == CtrlMode.ANGLE_STEER:
         return angle_steering(t, x, ctrl_param)
-    elif ctrl_type == 1:
+    elif ctrl_mode == CtrlMode.ZERO_ALPHA:
         return zero_alpha(t, x, ctrl_param)
-    elif ctrl_type == 2:
+    elif ctrl_mode == CtrlMode.LTS:
         return lts_control(t, x, ctrl_param)
-    elif ctrl_type == 3:
+    elif ctrl_mode == CtrlMode.POLYNOMIAL:
         return polynomial_steering(t, x, ctrl_param)
     else:
-        print("Control law not define")
+        print("Control mode not define")
