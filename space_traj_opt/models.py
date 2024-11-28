@@ -40,7 +40,7 @@ def dynamics(t: float, x: npt.ArrayLike, params) -> npt.ArrayLike:
 
 @numba.jit
 def get_drag_coeff(mach: float) -> float:
-    """Ballpark derodynamic drag
+    """Ballpark aerodynamic drag 
 
     Args:
         mach : mach number
