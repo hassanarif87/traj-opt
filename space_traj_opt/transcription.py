@@ -1,6 +1,6 @@
 import numpy.typing as npt
 import numpy as np
-
+from copy import deepcopy
 
 class MultiShootingTranscription:
     """A class to transcribe a multi-phase trajectory optimization problem into a Nonlinear Programming (NLP) problem using multiple shooting.
@@ -36,15 +36,21 @@ class MultiShootingTranscription:
         Sets the control inputs and control mode for a given phase and their bounds.
     set_phase_time(phase_name, t0, bounds=None):
         Sets the time span for a given phase and its bounds.
+    set_non_zero_defect(defect_phases, 
     """
 
-    def __init__(self, phase_names):
+    def __init__(self, phase_names, num_states):
         self.phase_names = phase_names
+        self.num_states = num_states
+        self.num_phases = len(phase_names)
         self.phase_configs = {}
         self.x0_array = {}
         self.u0_array = {}
         self.t0_array = {}
-
+        self.defects = {}
+        for phase in phase_names:
+            self.defects[phase]= np.zeros(num_states)
+        self.defects[phase_names[0]]= None
     def __repr__(self):
         def _format_dict(d):
             """Helper to format a dictionary as a string."""
@@ -57,6 +63,7 @@ class MultiShootingTranscription:
             f"  x0_array={_format_dict(self.x0_array)},\n"
             f"  u0_array={_format_dict(self.u0_array)},\n"
             f"  t0_array={_format_dict(self.t0_array)}\n"
+            f"  defects={_format_dict(self.defects)}\n"
             f")"
         )
 
@@ -79,11 +86,18 @@ class MultiShootingTranscription:
         # Initialize lists for decision variables and bounds
         d0 = []
         d0_bounds = []
+        ctrl_idx = 0 
 
+        # Deepcopy to keep member variables unaltered
+        phase_configs_built = deepcopy(self.phase_configs)
+        phase_configs_tuple = []
         # Loop through each phase
         for phase_name in self.phase_names:
             # Append controls and their bounds
             if phase_name in self.u0_array:
+                if isinstance(self.u0_array[phase_name], float):
+                    self.u0_array[phase_name] = np.array([self.u0_array[phase_name]])
+                print(self.u0_array[phase_name])
                 d0.extend(self.u0_array[phase_name])
                 d0_bounds.extend(self.u0_array.get(f"{phase_name}_bnds", []))
 
@@ -98,11 +112,19 @@ class MultiShootingTranscription:
             if phase_name in self.t0_array:
                 d0.append(self.t0_array[phase_name])  # Time is a scalar
                 d0_bounds.append(self.t0_array.get(f"{phase_name}_bnds", (None, None)))
-
+            
+            # Update phase config
+            end_idx = ctrl_idx + len(self.u0_array[phase_name])
+            ctrl_range = (ctrl_idx, end_idx)
+            phase_configs_built[phase_name].append(ctrl_range)
+            phase_configs_built[phase_name].append(self.defects[phase_name])
+            ctrl_idx= end_idx
+        for _ , value in phase_configs_built.items():
+            phase_configs_tuple.append(tuple(value))
         # Convert decision variables to numpy array for consistency
         d0 = np.array(d0, dtype=float)
 
-        return d0, d0_bounds, self.phase_configs
+        return d0, d0_bounds, phase_configs_tuple
 
     def set_phase_init_x(
         self,
@@ -150,7 +172,7 @@ class MultiShootingTranscription:
         elif (bounds == u0).all():
             bounds = [(val, val) for val in u0]
         self.u0_array[phase_name + "_bnds"] = bounds
-        self.phase_configs[phase_name] = ctrl_mode
+        self.phase_configs[phase_name] = [ctrl_mode]
 
     def set_phase_time(self, phase_name, t0, bounds=None):
         """
@@ -169,3 +191,19 @@ class MultiShootingTranscription:
         elif bounds == t0:
             bounds = (t0, t0)
         self.t0_array[phase_name + "_bnds"] = bounds
+
+    def set_non_zero_defect(self, defect_phases: tuple[str, str], defect_vec: npt.ArrayLike):
+        """Set a non zero defect at the knot point of the trajectory phases. 
+
+        Parameters
+        ----------
+        defect_phases : the 2 phases between which the defect is set
+        defect_vec : The defect vector, this should have the same dimentions as the state of the shooting dynamics 
+        """
+        assert(len(defect_vec) == self.num_states), "Defect vector lenght not equal to state vector "
+        for idx, phase in enumerate(self.phase_names):
+            if phase == defect_phases[1]:
+                self.defects[phase] = defect_vec
+                assert(self.phase_names[idx-1] == defect_phases[0]), "Phases are not adjacent"
+
+
