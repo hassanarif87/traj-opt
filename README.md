@@ -8,7 +8,9 @@ Sandbox for prototyping trajectory optimization formulations
  - Single stage to orbit lunar ascent
  - Cart pole 
 
-
+## Multiple shooting 
+ - Two degree of freedom Two stage ascent with ball-park aero, exponential atmosphere and spherical gravity  
+ 
 ## References 
 - Optimal Control with Aerospace Applications
 - AN INTRODUCTION TO TRAJECTORY OPTIMIZATION:HOW TO DO YOUR OWN DIRECT COLLOCATION
