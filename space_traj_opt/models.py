@@ -6,7 +6,7 @@ import enum
 STANDARD_GRAV = 9.80665
 
 
-#@numba.njit
+# @numba.njit
 def dynamics(t: float, x: npt.ArrayLike, params) -> npt.ArrayLike:
     """ Dynamics of the vehicle
 
@@ -24,7 +24,7 @@ def dynamics(t: float, x: npt.ArrayLike, params) -> npt.ArrayLike:
     cos_theta  = np.cos(u)
     sin_theta  = np.sin(u)
     dx = np.zeros_like(x)
-    v_sq = x[2]**2 + x[3]**2
+    v_sq = x[2]*x[2] + x[3]*x[3]
     v_mag = np.sqrt(v_sq)
     speed_of_sound, rho = get_atm(x[1])
     CdA = S_ref * get_drag_coeff(v_mag/speed_of_sound )
@@ -80,7 +80,7 @@ def get_atm(altitude: float) -> tuple[float, float]:
 ### Controls 
 
 
-#@numba.njit
+@numba.njit
 def angle_steering(t: float, x: np.array , params: tuple) -> float:
     """Constant desired pitch
 
@@ -94,7 +94,7 @@ def angle_steering(t: float, x: np.array , params: tuple) -> float:
     """
     u = params
     return u
-#@numba.njit
+@numba.njit
 def zero_alpha(t: float, x: np.array , params: tuple) -> float:
     """For zero alpha pitch = flight path angle 
     Args:
@@ -106,15 +106,16 @@ def zero_alpha(t: float, x: np.array , params: tuple) -> float:
     """
     vx, vy = x[2:4]
     return np.arctan2(vy, vx)
-#@numba.njit
+@numba.njit
 def polynomial_steering(t: float, x: np.array , params: tuple) -> float:
     a,b,c = params
     return a*t**2 + b*t + c
-#@numba.njit
+@numba.njit
 def lts_control(t: float, x: np.array , params: tuple) -> float:
     a,b = params
     return np.arctan(a*t+ b)
 
+#@numba.njit
 class CtrlMode(enum.Enum):
     """Enum class defining control mode
     """
@@ -123,7 +124,7 @@ class CtrlMode(enum.Enum):
     LTS = 3
     POLYNOMIAL = 3
 
-#@numba.njit
+# @numba.njit
 def control(t: float, x: np.array, params:tuple) -> float:
     """Functions selects the parameterized control scheme and returns the desired pitch angle
     Args:

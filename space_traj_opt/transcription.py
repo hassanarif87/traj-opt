@@ -1,6 +1,8 @@
 import numpy.typing as npt
 import numpy as np
 from copy import deepcopy
+from space_traj_opt.models import CtrlMode
+
 
 class MultiShootingTranscription:
     """A class to transcribe a multi-phase trajectory optimization problem into a Nonlinear Programming (NLP) problem using multiple shooting.
@@ -36,7 +38,7 @@ class MultiShootingTranscription:
         Sets the control inputs and control mode for a given phase and their bounds.
     set_phase_time(phase_name, t0, bounds=None):
         Sets the time span for a given phase and its bounds.
-    set_non_zero_defect(defect_phases, 
+    set_non_zero_defect(defect_phases,
     """
 
     def __init__(self, phase_names, num_states):
@@ -50,10 +52,11 @@ class MultiShootingTranscription:
         self.defects = {}
         self.terminal_state = None
         self.terninal_bounds = None
-        self.params = None
+        self.params = {}
         for phase in phase_names:
-            self.defects[phase]= np.zeros(num_states)
-        self.defects[phase_names[0]]= None
+            self.defects[phase] = np.zeros(num_states)
+        self.defects[phase_names[0]] = None
+
     def __repr__(self):
         def _format_dict(d):
             """Helper to format a dictionary as a string."""
@@ -67,6 +70,8 @@ class MultiShootingTranscription:
             f"  u0_array={_format_dict(self.u0_array)},\n"
             f"  t0_array={_format_dict(self.t0_array)}\n"
             f"  defects={_format_dict(self.defects)}\n"
+            f"  terminal_state={self.terminal_state}\n"
+            f"  terminal_bounds={self.terminal_bounds}\n"
             f")"
         )
 
@@ -89,7 +94,7 @@ class MultiShootingTranscription:
         # Initialize lists for decision variables and bounds
         d0 = []
         d0_bounds = []
-        ctrl_idx = 0 
+        ctrl_idx = 0
 
         # Deepcopy to keep member variables unaltered
         phase_configs_built = deepcopy(self.phase_configs)
@@ -102,7 +107,7 @@ class MultiShootingTranscription:
                     self.u0_array[phase_name] = np.array([self.u0_array[phase_name]])
                 d0.extend(self.u0_array[phase_name])
                 d0_bounds.extend(self.u0_array.get(f"{phase_name}_bnds", []))
-        
+
         for phase_name in self.phase_names:
             # Append states and their bounds
             if phase_name in self.x0_array:
@@ -110,8 +115,8 @@ class MultiShootingTranscription:
                     self.x0_array[phase_name].flatten()
                 )  # Flatten the state array
                 d0_bounds.extend(self.x0_array.get(f"{phase_name}_bnds", []))
-        
-        # Terminal Conditions 
+
+        # Terminal Conditions
         d0.extend(self.terminal_state)
         d0_bounds.extend(self.terminal_bounds)
         for phase_name in self.phase_names:
@@ -119,15 +124,15 @@ class MultiShootingTranscription:
             if phase_name in self.t0_array:
                 d0.append(self.t0_array[phase_name])  # Time is a scalar
                 d0_bounds.append(self.t0_array.get(f"{phase_name}_bnds", (None, None)))
-            
+
             # Update phase config
             end_idx = ctrl_idx + len(self.u0_array[phase_name])
             ctrl_range = (ctrl_idx, end_idx)
             phase_configs_built[phase_name].append(ctrl_range)
             phase_configs_built[phase_name].append(self.defects[phase_name])
-            phase_configs_built[phase_name].append(self.params)
-            ctrl_idx= end_idx
-        for _ , value in phase_configs_built.items():
+            phase_configs_built[phase_name].append(self.params[phase_name])
+            ctrl_idx = end_idx
+        for _, value in phase_configs_built.items():
             phase_configs_tuple.append(tuple(value))
         # Convert decision variables to numpy array for consistency
         d0 = np.array(d0, dtype=float)
@@ -151,7 +156,7 @@ class MultiShootingTranscription:
         """
         self.x0_array[phase_name] = x0
         if bounds is None:
-            bounds = [(None, None) for _ in x0]
+            bounds = [(0., None) for _ in x0]
         elif (bounds == x0).all():
             bounds = [(val, val) for val in x0]
         self.x0_array[phase_name + "_bnds"] = bounds
@@ -159,7 +164,7 @@ class MultiShootingTranscription:
     def set_phase_control(
         self,
         phase_name: str,
-        ctrl_mode,
+        ctrl_mode: CtrlMode,
         u0: npt.ArrayLike,
         bounds: None | npt.ArrayLike | tuple = None,
     ):
@@ -169,7 +174,7 @@ class MultiShootingTranscription:
         Parameters
         ----------
         phase_name : The name of the phase.
-        ctrl_mode : The control mode for the phase.
+        ctrl_mode : Enum defining the control mode for the phase.
         u0 : The control inputs for the phase.
         bounds : The bounds for the control inputs. If None, no bounds are applied. \
             If equal to `u0`, the bounds are fixed at `u0` values. Default is None.
@@ -182,7 +187,7 @@ class MultiShootingTranscription:
         self.u0_array[phase_name + "_bnds"] = bounds
         self.phase_configs[phase_name] = [ctrl_mode]
 
-    def set_phase_time(self, phase_name, t0, bounds=None):
+    def set_phase_time(self, phase_name: str, t0: float, bounds=None):
         """
         Sets the terminal time guess for a given phase and its bounds.
 
@@ -190,31 +195,39 @@ class MultiShootingTranscription:
         ----------
         phase_name : The name of the phase.
         t0 :The terminal time guess guess for the phase.
-        bounds : The bounds for the time span. If None, no bounds are applied. \
+        bounds : The bounds for the time span. If None, (0., None) is applied as a bound. \
             If equal to `t0`, the bounds are fixed at `t0` values. Default is None.
         """
         self.t0_array[phase_name] = t0
         if bounds is None:
-            bounds = (None, None)
+            bounds = (0., None)
         elif bounds == t0:
             bounds = (t0, t0)
         self.t0_array[phase_name + "_bnds"] = bounds
 
-    def set_non_zero_defect(self, defect_phases: tuple[str, str], defect_vec: npt.ArrayLike):
-        """Set a non zero defect at the knot point of the trajectory phases. 
+    def set_non_zero_defect(
+        self, defect_phases: tuple[str, str], defect_vec: npt.ArrayLike
+    ):
+        """Set a non zero defect at the knot point of the trajectory phases.
 
         Parameters
         ----------
         defect_phases : the 2 phases between which the defect is set
-        defect_vec : The defect vector, this should have the same dimentions as the state of the shooting dynamics 
+        defect_vec : The defect vector, this should have the same dimentions as the state of the shooting dynamics
         """
-        assert(len(defect_vec) == self.num_states), "Defect vector lenght not equal to state vector "
+        assert (
+            len(defect_vec) == self.num_states
+        ), "Defect vector lenght not equal to state vector "
         for idx, phase in enumerate(self.phase_names):
             if phase == defect_phases[1]:
                 self.defects[phase] = defect_vec
-                assert(self.phase_names[idx-1] == defect_phases[0]), "Phases are not adjacent"
+                assert (
+                    self.phase_names[idx - 1] == defect_phases[0]
+                ), "Phases are not adjacent"
 
-    def set_terminal_state(self, x_final: npt.ArrayLike, bounds: tuple | npt.ArrayLike | None =None):
+    def set_terminal_state(
+        self, x_final: npt.ArrayLike, bounds: tuple | npt.ArrayLike | None = None
+    ):
         """
         Sets the terminal state for the trajectory and its bounds.
 
@@ -240,18 +253,25 @@ class MultiShootingTranscription:
         # Set bounds if not provided
         if bounds is None:
             bounds = [(None, None) for _ in x_final]
-        
-        # Set bounds if not provided if an array like bound is provided set elememts as upper and lower bound 
+
+        # Set bounds if not provided if an array like bound is provided set elememts as upper and lower bound
         bounds_arr = np.array(bounds)
         if np.shape(bounds_arr) == np.shape(x_final):
-            bounds = [(x, x) for x in bounds]
+            bounds_out = [(x, x) for x in bounds]
+
         # Ensure bounds match the terminal state dimensions
-        assert len(bounds) == len(x_final), "Bounds must match the size of the terminal state."
+        assert len(bounds_out) == len(
+            x_final
+        ), "Bounds must match the size of the terminal state."
 
         # Store the bounds
-        self.terminal_bounds = bounds
-    
-    def set_params(self, params: tuple):
-        self.params = params
+        self.terminal_bounds = bounds_out
 
+    def set_dynamics_params(self, phase_name: str, params: tuple):
+        """Params needed for the dynamics function in the trajectory rollout
 
+        Args:
+            phase_name : The name of the phase.
+            params: Parameters needed in the dynamics function 
+        """
+        self.params[phase_name] = params
