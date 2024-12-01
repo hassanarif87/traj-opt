@@ -190,12 +190,13 @@ class MultiShootingTranscription:
     def set_phase_time(self, phase_name: str, t0: float, bounds=None):
         """
         Sets the terminal time guess for a given phase and its bounds.
-
+        1 sec is the min length allowed to avoid collapsing trajectory
+        
         Parameters
         ----------
         phase_name : The name of the phase.
         t0 :The terminal time guess guess for the phase.
-        bounds : The bounds for the time span. If None, (0., None) is applied as a bound. \
+        bounds : The bounds for the time span. If None, (1., None) is applied as a bound. \
             If equal to `t0`, the bounds are fixed at `t0` values. Default is None.
         """
         self.t0_array[phase_name] = t0
@@ -208,7 +209,7 @@ class MultiShootingTranscription:
     def set_non_zero_defect(
         self, defect_phases: tuple[str, str], defect_vec: npt.ArrayLike
     ):
-        """Set a non zero defect at the knot point of the trajectory phases.
+        """Set a non zero defect at the knot point of the trajectory pShases.
 
         Parameters
         ----------
@@ -217,7 +218,7 @@ class MultiShootingTranscription:
         """
         assert (
             len(defect_vec) == self.num_states
-        ), "Defect vector lenght not equal to state vector "
+        ), "Defect vector length not equal to state vector "
         for idx, phase in enumerate(self.phase_names):
             if phase == defect_phases[1]:
                 self.defects[phase] = defect_vec
@@ -275,3 +276,46 @@ class MultiShootingTranscription:
             params: Parameters needed in the dynamics function 
         """
         self.params[phase_name] = params
+    
+    @staticmethod
+    def normalize_decision_vec(decision_vector, bounds, normalization_vector, offset_vector=None):
+        """
+        Normalize a decision vector and its bounds using a scaling normalization vector 
+        and an optional offset vector.
+
+        Args:
+            decision_vector: The original decision vector to normalize.
+            bounds: List of tuples representing (lower, upper) bounds for the decision variables.
+            normalization_vector: Array or list of scaling factors for normalization.
+            offset_vector: Array or list of offsets for normalization. Defaults to None.
+
+        Returns:
+            normalized_vector: The normalized decision vector.
+            normalized_bounds: The normalized bounds as a list of (lower, upper) tuples.
+        """
+
+        # Ensure the normalization vector matches the length of the decision vector
+        if len(decision_vector) != len(normalization_vector):
+            raise ValueError("Normalization vector must match the length of the decision vector.")
+
+        # Default offset vector to zeros if not provided
+        if offset_vector is None:
+            offset_vector = np.zeros_like(decision_vector)
+
+        # Ensure the offset vector matches the length of the decision vector
+        if len(decision_vector) != len(offset_vector):
+            raise ValueError("Offset vector must match the length of the decision vector.")
+
+        # Normalize the decision vector
+        normalized_vector = (decision_vector - offset_vector) / normalization_vector
+
+        # Normalize the bounds
+        normalized_bounds = [
+            (
+                (lb - offset) / scale if lb is not None else None,
+                (ub - offset) / scale if ub is not None else None
+            )
+            for (lb, ub), scale, offset in zip(bounds, normalization_vector, offset_vector)
+        ]
+
+        return normalized_vector, normalized_bounds
