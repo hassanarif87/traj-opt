@@ -319,3 +319,26 @@ class MultiShootingTranscription:
         ]
 
         return normalized_vector, normalized_bounds
+
+    @staticmethod
+    def denormalize_decision_vec(normalized_vector, normalization_vector, offset_vector=None):
+        """
+        Denormalize a decision vector a scaling normalization vector and an optional offset vector.
+
+        Args:
+            normalized_vector: The normalized decision vector to denormalize.
+            normalized_bounds: List of tuples representing (lower, upper) bounds in the normalized space.
+            offset_vector: Array or list of offsets used for normalization. Defaults to None.
+
+        Returns:
+            denormalized_vector: The denormalized decision vector.
+        """
+        # Default offset vector to zeros if not provided
+        if offset_vector is None:
+            offset_vector = np.zeros_like(normalized_vector)
+
+        # Denormalize the decision vector
+        denormalized_vector = normalized_vector * normalization_vector + offset_vector
+
+        # Denormalize the bounds
+        return denormalized_vector
