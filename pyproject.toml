@@ -7,7 +7,7 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = ">=3.10,<3.11"
-numpy = "^1.26.2"
+numpy = "^2.0.0"
 scipy = "^1.11.4"
 pandas = "^2.1.4"
 plotly = "^5.18.0"
@@ -16,10 +16,10 @@ pint = "^0.23"
 poliastro = "^0.17.0"
 sympy = "^1.12"
 jax = "^0.4.35"
-diffrax = "^0.6.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.1.1"
+snakeviz = "^2.2.2"
 
 [build-system]
 requires = ["poetry-core"]
