@@ -11,7 +11,7 @@
 				"ms-toolsai.jupyter"
 			]
 		}
-	}
+	},
 
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
@@ -20,7 +20,8 @@
 	// "forwardPorts": [],
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	// "postCreateCommand": "uname -a",
+	"postCreateCommand": "curl -sSL https://install.python-poetry.org | python3 - && poetry --version"
+
 
 	// Configure tool-specific properties.
 	// "customizations": {},
