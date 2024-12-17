@@ -6,14 +6,13 @@ authors = ["Hassan Arif <hassanarif87@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = ">=3.10,<3.11"
+python = ">=3.10,<3.13"
 numpy = "^2.0.0"
 scipy = "^1.11.4"
 pandas = "^2.1.4"
 plotly = "^5.18.0"
 jupyter = "^1.0.0"
 pint = "^0.23"
-poliastro = "^0.17.0"
 sympy = "^1.12"
 jax = "^0.4.35"
 
