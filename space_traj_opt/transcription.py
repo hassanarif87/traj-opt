@@ -166,7 +166,7 @@ class MultiShootingTranscription:
         self.x0_array[phase_name] = x0
         if bounds is None:
             bounds = [(0., None) for _ in x0]
-        elif (bounds == x0).all():
+        elif np.shape(x0) == np.shape(bounds) and (bounds == x0).all():
             bounds = [(val, val) for val in x0]
         self.x0_array[phase_name + "_bnds"] = bounds
         self.x0_array[phase_name + "_normvec"] = norm_vec
@@ -272,10 +272,12 @@ class MultiShootingTranscription:
         if bounds is None:
             bounds = [(None, None) for _ in x_final]
 
-        # Set bounds if not provided if an array like bound is provided set elememts as upper and lower bound
+        # Set bounds if not provided if an array like bound is provided set elements as upper and lower bound
         bounds_arr = np.array(bounds)
         if np.shape(bounds_arr) == np.shape(x_final):
             bounds_out = [(x, x) for x in bounds]
+        else:
+            bounds_out = bounds
 
         # Ensure bounds match the terminal state dimensions
         assert len(bounds_out) == len(
@@ -289,7 +291,7 @@ class MultiShootingTranscription:
         """Params needed for the dynamics function in the trajectory rollout
 
         Args:
-            phase_name : The name of the phase.
+            phase_name: The name of the phase.
             params: Parameters needed in the dynamics function 
         """
         self.params[phase_name] = params
@@ -377,48 +379,48 @@ class MultiShootingTranscription:
         # Denormalize the bounds
         return denormalized_vector
     
-    # @staticmethod
-    # @lru_cache(maxsize=128, typed=True) 
-    # def traj_rollout(t_terminal:float, x0: np.array, params: tuple) -> OdeSolution:
-    #     """Integrates a phase of the trajectory.
-    #     The trajectory is evaluated at a set time points using t_eval, this greatly improves convergance and stability of the gradients 
-    #     lru_cache decerases the time required to calculate the jac, since scipy uses forward diff the cached f(x) is used instead of a re-compute
-    #     Args:
-    #         t_terminal : Terminal time of the phase
-    #         x0 : Initial state of the phase
-    #         params : Phase Parameter
-# 
-    #     Returns:
-    #         OdeSolution: The solution of the phase
-    #     """
-    #     sol = solve_ivp(
-    #         dynamics, 
-    #         t_span=[0.0, t_terminal], 
-    #         t_eval= np.linspace(0.0, t_terminal,25), # This greatly improves convergance and stability of the jac
-    #         y0=x0,    
-    #         args=(params,)
-    #     )
-    #     return sol  
-# 
-    # def full_traj_rollout(self, decision_var, config_list)->list[OdeSolution]:
-    #     """Rolls out all the trajectory segments
-    #     Args:
-    #         decision_var : Optimzation decission vector
-    #         config_list : Configs for each phase
-# 
-    #     Returns:
-    #         list of ode solutions for each segment
-    #     """
-    #     sol_list = []
-    #     sol = None
-    #     for  config in config_list:
-    #         u, x, t_terminal, control_law = self.unpack_decision_var(decision_var,config)
-    #         # make inputs hashable, needed for lru cache, the copy is cheaper than a second f(x) eval
-    #         u_ = tuple(u.tolist())
-    #         x_ =tuple(x.tolist())
-    #         t_ = float(t_terminal)
-    #     
-    #         vch_params = (config[3],(control_law, u_))
-    #         sol = self.traj_rollout(t_, x_, vch_params)
-    #         sol_list.append(sol)
-    #     return sol_list
+    @staticmethod
+    @lru_cache(maxsize=128, typed=True) 
+    def traj_rollout(t_terminal:float, x0: np.array, params: tuple) -> OdeSolution:
+        """Integrates a phase of the trajectory.
+        The trajectory is evaluated at a set time points using t_eval, this greatly improves convergance and stability of the gradients 
+        lru_cache decerases the time required to calculate the jac, since scipy uses forward diff the cached f(x) is used instead of a re-compute
+        Args:
+            t_terminal : Terminal time of the phase
+            x0 : Initial state of the phase
+            params : Phase Parameter
+    
+        Returns:
+            OdeSolution: The solution of the phase
+        """
+        sol = solve_ivp(
+            dynamics, 
+            t_span=[0.0, t_terminal], 
+            t_eval= np.linspace(0.0, t_terminal,25), # This greatly improves convergance and stability of the jac
+            y0=x0,    
+            args=(params,)
+        )
+        return sol  
+    
+    def full_traj_rollout(self, decision_var, config_list)->list[OdeSolution]:
+        """Rolls out all the trajectory segments
+        Args:
+            decision_var : Optimzation decission vector
+            config_list : Configs for each phase
+    
+        Returns:
+            list of ode solutions for each segment
+        """
+        sol_list = []
+        sol = None
+        for  config in config_list:
+            u, x, t_terminal, control_law = self.unpack_decision_var(decision_var,config)
+            # make inputs hashable, needed for lru cache, the copy is cheaper than a second f(x) eval
+            u_ = tuple(u.tolist())
+            x_ =tuple(x.tolist())
+            t_ = float(t_terminal)
+        
+            vch_params = (config[3],(control_law, u_))
+            sol = self.traj_rollout(t_, x_, vch_params)
+            sol_list.append(sol)
+        return sol_list
