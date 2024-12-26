@@ -2,7 +2,10 @@ import numpy.typing as npt
 import numpy as np
 from copy import deepcopy
 from space_traj_opt.models import CtrlMode
-
+from scipy.integrate import solve_ivp, OdeSolution
+from functools import lru_cache
+from space_traj_opt.models import dynamics
+from concurrent.futures import ThreadPoolExecutor
 
 class MultiShootingTranscription:
     """A class to transcribe a multi-phase trajectory optimization problem into a Nonlinear Programming (NLP) problem using multiple shooting.
@@ -51,7 +54,9 @@ class MultiShootingTranscription:
         self.t0_array = {}
         self.defects = {}
         self.terminal_state = None
-        self.terninal_bounds = None
+        self.terminal_bounds = None
+        self.terminal_normvec = None
+
         self.params = {}
         for phase in phase_names:
             self.defects[phase] = np.zeros(num_states)
@@ -94,6 +99,7 @@ class MultiShootingTranscription:
         # Initialize lists for decision variables and bounds
         d0 = []
         d0_bounds = []
+        normalization_vec = []
         ctrl_idx = 0
 
         # Deepcopy to keep member variables unaltered
@@ -107,43 +113,46 @@ class MultiShootingTranscription:
                     self.u0_array[phase_name] = np.array([self.u0_array[phase_name]])
                 d0.extend(self.u0_array[phase_name])
                 d0_bounds.extend(self.u0_array.get(f"{phase_name}_bnds", []))
-
-        for phase_name in self.phase_names:
+                normalization_vec.extend(self.u0_array.get(f"{phase_name}_normvec", []))
             # Append states and their bounds
             if phase_name in self.x0_array:
                 d0.extend(
                     self.x0_array[phase_name].flatten()
                 )  # Flatten the state array
                 d0_bounds.extend(self.x0_array.get(f"{phase_name}_bnds", []))
+                normalization_vec.extend(self.x0_array.get(f"{phase_name}_normvec", []))
 
-        # Terminal Conditions
-        d0.extend(self.terminal_state)
-        d0_bounds.extend(self.terminal_bounds)
-        for phase_name in self.phase_names:
             # Append time spans and their bounds
             if phase_name in self.t0_array:
                 d0.append(self.t0_array[phase_name])  # Time is a scalar
                 d0_bounds.append(self.t0_array.get(f"{phase_name}_bnds", (None, None)))
+                normalization_vec.append(self.t0_array[phase_name])
 
-            # Update phase config
             end_idx = ctrl_idx + len(self.u0_array[phase_name])
+            # Check length of state vector and add t to the ctrl start idx # TODOL 
             ctrl_range = (ctrl_idx, end_idx)
             phase_configs_built[phase_name].append(ctrl_range)
             phase_configs_built[phase_name].append(self.defects[phase_name])
             phase_configs_built[phase_name].append(self.params[phase_name])
-            ctrl_idx = end_idx
+            ctrl_idx = len(d0)
+        # Terminal Conditions
+        d0.extend(self.terminal_state)
+        d0_bounds.extend(self.terminal_bounds)
+        normalization_vec.extend(self.terminal_normvec)
         for _, value in phase_configs_built.items():
             phase_configs_tuple.append(tuple(value))
         # Convert decision variables to numpy array for consistency
         d0 = np.array(d0, dtype=float)
-
-        return d0, d0_bounds, phase_configs_tuple
+        normalization_vec = np.array(normalization_vec, dtype=float)
+        return d0, d0_bounds, normalization_vec, phase_configs_tuple
 
     def set_phase_init_x(
         self,
         phase_name: str,
         x0: npt.ArrayLike,
         bounds: None | npt.ArrayLike | tuple = None,
+        norm_vec: None | npt.ArrayLike |list= None,
+
     ):
         """Sets the initial state for a given phase and its bounds.
 
@@ -153,13 +162,15 @@ class MultiShootingTranscription:
         x0 : The initial state for the phase.
         bounds : The bounds for the initial state. If None, no bounds are applied. \
             If equal to `x0`, the bounds are fixed at `x0` values. Default is None.
+        norm_vec : Vector used to normalize the states
         """
         self.x0_array[phase_name] = x0
         if bounds is None:
             bounds = [(0., None) for _ in x0]
-        elif (bounds == x0).all():
+        elif np.shape(x0) == np.shape(bounds) and (bounds == x0).all():
             bounds = [(val, val) for val in x0]
         self.x0_array[phase_name + "_bnds"] = bounds
+        self.x0_array[phase_name + "_normvec"] = norm_vec
 
     def set_phase_control(
         self,
@@ -167,6 +178,7 @@ class MultiShootingTranscription:
         ctrl_mode: CtrlMode,
         u0: npt.ArrayLike,
         bounds: None | npt.ArrayLike | tuple = None,
+        norm_vec: None | npt.ArrayLike |list= None,
     ):
         """
         Sets the control inputs and control mode for a given phase and their bounds.
@@ -178,6 +190,7 @@ class MultiShootingTranscription:
         u0 : The control inputs for the phase.
         bounds : The bounds for the control inputs. If None, no bounds are applied. \
             If equal to `u0`, the bounds are fixed at `u0` values. Default is None.
+        norm_vec : Vector used to normalize the controls
         """
         self.u0_array[phase_name] = u0
         if bounds is None:
@@ -185,6 +198,8 @@ class MultiShootingTranscription:
         elif (bounds == u0).all():
             bounds = [(val, val) for val in u0]
         self.u0_array[phase_name + "_bnds"] = bounds
+        self.u0_array[phase_name + "_normvec"] = norm_vec
+
         self.phase_configs[phase_name] = [ctrl_mode]
 
     def set_phase_time(self, phase_name: str, t0: float, bounds=None):
@@ -227,7 +242,9 @@ class MultiShootingTranscription:
                 ), "Phases are not adjacent"
 
     def set_terminal_state(
-        self, x_final: npt.ArrayLike, bounds: tuple | npt.ArrayLike | None = None
+        self, x_final: npt.ArrayLike, 
+        bounds: tuple | npt.ArrayLike | None = None,         
+        norm_vec: None | npt.ArrayLike |list= None,
     ):
         """
         Sets the terminal state for the trajectory and its bounds.
@@ -238,6 +255,7 @@ class MultiShootingTranscription:
         bounds : The bounds for the terminal state. If None, no bounds are applied. \
             If specified, it should be a list of tuples (lower_bound, upper_bound) \
             for each state variable. Default is None.
+        norm_vec : Vector used to normalize the terminal state
 
         Example
         -------
@@ -250,15 +268,17 @@ class MultiShootingTranscription:
         """
         # Store the terminal state
         self.terminal_state = x_final
-
+        self.terminal_normvec = norm_vec
         # Set bounds if not provided
         if bounds is None:
             bounds = [(None, None) for _ in x_final]
 
-        # Set bounds if not provided if an array like bound is provided set elememts as upper and lower bound
+        # Set bounds if not provided if an array like bound is provided set elements as upper and lower bound
         bounds_arr = np.array(bounds)
         if np.shape(bounds_arr) == np.shape(x_final):
             bounds_out = [(x, x) for x in bounds]
+        else:
+            bounds_out = bounds
 
         # Ensure bounds match the terminal state dimensions
         assert len(bounds_out) == len(
@@ -272,11 +292,28 @@ class MultiShootingTranscription:
         """Params needed for the dynamics function in the trajectory rollout
 
         Args:
-            phase_name : The name of the phase.
+            phase_name: The name of the phase.
             params: Parameters needed in the dynamics function 
         """
         self.params[phase_name] = params
-    
+
+    def unpack_decision_var(self,decision_var, config):
+        """Converts the decision 
+
+        Args:
+            decision_var : Optimzation decission vector
+            config : Config for this phase
+        Returns:
+            tuple: control, state, terminal time, control_law
+
+        """
+        control_law = config[0]
+        ctrl_idx_range = list(config[1])
+        u = decision_var[range(*config[1])]
+        x = decision_var[ctrl_idx_range[-1]: ctrl_idx_range[-1]+self.num_states]
+        t_terminal = decision_var[ctrl_idx_range[-1]+self.num_states]
+
+        return (u, x, t_terminal, control_law)
     @staticmethod
     def normalize_decision_vec(decision_vector, bounds, normalization_vector, offset_vector=None):
         """
@@ -342,3 +379,48 @@ class MultiShootingTranscription:
 
         # Denormalize the bounds
         return denormalized_vector
+    
+    @staticmethod
+    @lru_cache(maxsize=128, typed=True) 
+    def traj_rollout(t_terminal:float, x0: np.array, params: tuple) -> OdeSolution:
+        """Integrates a phase of the trajectory.
+        The trajectory is evaluated at a set time points using t_eval, this greatly improves convergance and stability of the gradients 
+        lru_cache decerases the time required to calculate the jac, since scipy uses forward diff the cached f(x) is used instead of a re-compute
+        Args:
+            t_terminal : Terminal time of the phase
+            x0 : Initial state of the phase
+            params : Phase Parameter
+    
+        Returns:
+            OdeSolution: The solution of the phase
+        """
+        sol = solve_ivp(
+            dynamics, 
+            t_span=[0.0, t_terminal], 
+            t_eval= np.linspace(0.0, t_terminal,50), # This greatly improves convergance and stability of the jac
+            y0=x0,    
+            args=(params,)
+        )
+        return sol  
+    
+    def full_traj_rollout(self, decision_var, config_list)->list[OdeSolution]:
+        """Rolls out all the trajectory segments. Each segment is rolled out in parallel using ThreadPoolExecutor.
+        Args:
+            decision_var : Optimzation decission vector
+            config_list : Configs for each phase
+    
+        Returns:
+            list of ode solutions for each segment
+        """
+        def process_phase(config):
+            u, x, t_terminal, control_law = self.unpack_decision_var(decision_var, config)
+            # make inputs hashable, needed for lru cache, the copy is cheaper than a second f(x) eval
+            u_ = tuple(u.tolist())
+            x_ = tuple(x.tolist())
+            t_ = float(t_terminal)
+            vch_params = (config[3], (control_law, u_))
+            return self.traj_rollout(t_, x_, vch_params)
+
+        with ThreadPoolExecutor() as executor:
+            sol_list = list(executor.map(process_phase, config_list))
+        return sol_list

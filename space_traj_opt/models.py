@@ -43,7 +43,6 @@ def dynamics_plant(
     thrust, Isp = params
     cos_theta = np.cos(u)
     sin_theta = np.sin(u)
-    # dx = np.zeros_like(x, dtype=np.float64)
     v_sq = x[2] * x[2] + x[3] * x[3]
     v_mag = np.sqrt(v_sq)
     speed_of_sound, rho = get_atm(x[1])
@@ -51,15 +50,9 @@ def dynamics_plant(
     drag = 0.5 * rho * CdA * v_sq
     xdot = x[2]
     ydot = x[3]
-    # dx[2] = (
-    #     thrust * cos_theta - drag * np.divide(x[2], v_mag, where=v_mag != 0.0)
-    # ) / x[4]  #
-    # dx[3] = (
-    #     thrust * sin_theta - drag * np.divide(x[3], v_mag, where=v_mag != 0.0)
-    # ) / x[4] - STANDARD_GRAV  #
     dx = 0.
     dy = 0.
-    if v_mag > 0.:
+    if v_mag > 1e-5:
         dx = drag * x[2]/ v_mag
         dy = drag * x[3]/ v_mag
     xddot = (thrust * cos_theta - dx) / x[4]  #
