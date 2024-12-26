@@ -52,7 +52,7 @@ def dynamics_plant(
     ydot = x[3]
     dx = 0.
     dy = 0.
-    if v_mag > 0.:
+    if v_mag > 1e-5:
         dx = drag * x[2]/ v_mag
         dy = drag * x[3]/ v_mag
     xddot = (thrust * cos_theta - dx) / x[4]  #
