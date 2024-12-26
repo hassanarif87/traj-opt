@@ -5,6 +5,7 @@ from space_traj_opt.models import CtrlMode
 from scipy.integrate import solve_ivp, OdeSolution
 from functools import lru_cache
 from space_traj_opt.models import dynamics
+from concurrent.futures import ThreadPoolExecutor
 
 class MultiShootingTranscription:
     """A class to transcribe a multi-phase trajectory optimization problem into a Nonlinear Programming (NLP) problem using multiple shooting.
@@ -396,14 +397,14 @@ class MultiShootingTranscription:
         sol = solve_ivp(
             dynamics, 
             t_span=[0.0, t_terminal], 
-            t_eval= np.linspace(0.0, t_terminal,25), # This greatly improves convergance and stability of the jac
+            t_eval= np.linspace(0.0, t_terminal,50), # This greatly improves convergance and stability of the jac
             y0=x0,    
             args=(params,)
         )
         return sol  
     
     def full_traj_rollout(self, decision_var, config_list)->list[OdeSolution]:
-        """Rolls out all the trajectory segments
+        """Rolls out all the trajectory segments. Each segment is rolled out in parallel using ThreadPoolExecutor.
         Args:
             decision_var : Optimzation decission vector
             config_list : Configs for each phase
@@ -411,16 +412,15 @@ class MultiShootingTranscription:
         Returns:
             list of ode solutions for each segment
         """
-        sol_list = []
-        sol = None
-        for  config in config_list:
-            u, x, t_terminal, control_law = self.unpack_decision_var(decision_var,config)
+        def process_phase(config):
+            u, x, t_terminal, control_law = self.unpack_decision_var(decision_var, config)
             # make inputs hashable, needed for lru cache, the copy is cheaper than a second f(x) eval
             u_ = tuple(u.tolist())
-            x_ =tuple(x.tolist())
+            x_ = tuple(x.tolist())
             t_ = float(t_terminal)
-        
-            vch_params = (config[3],(control_law, u_))
-            sol = self.traj_rollout(t_, x_, vch_params)
-            sol_list.append(sol)
+            vch_params = (config[3], (control_law, u_))
+            return self.traj_rollout(t_, x_, vch_params)
+
+        with ThreadPoolExecutor() as executor:
+            sol_list = list(executor.map(process_phase, config_list))
         return sol_list
