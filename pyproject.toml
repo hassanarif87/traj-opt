@@ -17,6 +17,7 @@ sympy = "^1.12"
 jax = "^0.4.35"
 numba = "^0.60.0"
 matplotlib = "^3.10.0"
+cyipopt = "^1.5.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.1.1"
