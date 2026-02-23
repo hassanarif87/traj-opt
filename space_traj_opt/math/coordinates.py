@@ -54,7 +54,7 @@ def ecef2lla(r_ecef):
     x, y, z = r_ecef
     lon = np.arctan2(y, x)
     p = np.sqrt(x**2 + y**2)
-    lat = np.arctan2(z, p * (1 - 0.081819190842622))
+    lat = np.arctan2(z, p * (1 - ECCEN_EARTH**2))
     alt = p / np.cos(lat) - R_EARTH
     return lat, lon, alt
 
@@ -80,7 +80,7 @@ def quat_eci2ecef(t):
     """Get the quaternion representing the rotation from ECI to ECEF frame at time t
 
     Args:
-        t : time in seconds since epoch sim t =0
+        t : time in seconds since epoch sim t = 0
     Returns:
         q_eci2ecef : quaternion representing rotation from ECI to ECEF frame
     """    
@@ -114,3 +114,51 @@ def quat_ecef2ned(lat, lon):
 
     q3 = q_from_axisangle(lat, np.array([1, 0, 0]))
     return q_mult(q1, q_mult(q2, q3))
+
+def quat_eci2ned(t, x):
+    """Get the quaternion representing the rotation from NED to ECI frame at time t and position x
+
+    Args:
+        t : time in seconds since epoch sim t =0
+        x : position vector in ECI frame
+    Returns:
+        q_eci2ned : quaternion representing rotation from ECI to NED frame
+    """    
+    r_ecef = eci2ecef(x, t)
+    lat, lon, _ = ecef2lla(r_ecef)
+    q_ecef2ned = quat_ecef2ned(lat, lon)
+    q_eci2ecef = quat_eci2ecef(t)
+    return q_mult(q_eci2ecef, q_ecef2ned)
+
+def quat_ned2eci(t, x):
+    """Get the quaternion representing the rotation from NED to ECI frame at time t and position x
+
+    Args:
+        t : time in seconds since epoch sim t =0
+        x : position vector in ECI frame
+    Returns:
+        q_ned2eci : quaternion representing rotation from NED to ECI frame
+    """    
+    return quat_conj(quat_eci2ned(t, x))
+
+
+def dcm_rsw2eci(r_vec, v_vec):
+    """Get the quaternion representing the rotation from RSW to ECI frame given position and velocity vectors
+
+    Args:
+        r_vec : position vector in ECI frame
+        v_vec : velocity vector in ECI frame
+    Returns:
+        q_rsw2eci : quaternion representing rotation from RSW to ECI frame
+    """     
+    # Radial unit vector
+    r_hat = r_vec / np.linalg.norm(r_vec)
+    # Cross-track unit vector
+    w_vec = np.cross(r_vec, v_vec)
+    w_hat = w_vec / np.linalg.norm(w_vec)
+    #  Along-track unit vector
+    s_vec = np.cross(w_hat, r_hat)
+    s_hat = s_vec / np.linalg.norm(s_vec)
+    # DCM RSW -> ECI
+    return np.column_stack((r_hat, s_hat, w_hat))
+    
