@@ -1,5 +1,5 @@
 import numpy as np
-from .constants import OMEGA_EARTH, R_EARTH, ECCEN_EARTH
+from .constants import OMEGA_EARTH, SMA_EARTH, ECCEN_EARTH, ECCEN_EARTH_SQ
 from .quaternion import quat_conj, q_from_axisangle, q_mult
 
 def eci2ecef(r_eci, t):
@@ -40,9 +40,13 @@ def ecef2eci(r_ecef, t):
     ])
     return r_eci
 
-# TODO: Add more accurate models for lla
 def ecef2lla(r_ecef):
     """Convert from ECEF to Latitude, Longitude, Altitude
+
+    References
+    ----------
+    .. Jekeli, C.,"Inertial Navigation Systems With Geodetic
+       Applications", Walter de Gruyter, New York, 2001, pp. 24
 
     Args:
         r_ecef : position vector in ECEF frame
@@ -53,14 +57,37 @@ def ecef2lla(r_ecef):
     """ 
     x, y, z = r_ecef
     lon = np.arctan2(y, x)
+    # Horizontal distance from the z-axis
     p = np.sqrt(x**2 + y**2)
-    lat = np.arctan2(z, p * (1 - ECCEN_EARTH**2))
-    alt = p / np.cos(lat) - R_EARTH
+    # Initial Lat guess
+    lat = np.arctan2(z, p * (1 - ECCEN_EARTH_SQ))
+    err = 1.0
+    alt = 0.0
+
+    while abs(err) > 1e-10:
+        sin_lat = np.sin(lat)
+        cos_lat = np.cos(lat)
+
+        N = SMA_EARTH / np.sqrt(1 - ECCEN_EARTH_SQ*sin_lat*sin_lat)
+
+        # Two altitude formulas
+        h1 = p / cos_lat - N
+        # Use alternate formula near the poles to avoid division by cos(lat) ~ 0
+        h2 = z / sin_lat - (1 - ECCEN_EARTH_SQ)*N
+
+        # Branchless selector: 1 for non-pole, 0 for near-pole
+        use_h1 = float(abs(np.pi/2 - abs(lat)) > 1e-3)
+
+        alt = use_h1*h1 + (1 - use_h1)*h2
+        new_lat = np.arctan2(z + ECCEN_EARTH_SQ*N*sin_lat, p)
+        err = new_lat - lat
+        lat = new_lat
     return lat, lon, alt
 
 def lla2ecef(lat, lon, alt):
     """Convert from Latitude, Longitude, Altitude to ECEF
-
+    
+    Ref: https://github.com/NavPy/NavPy/blob/master/navpy/core/navpy.py
     Args:
         lat : latitude in radians
         lon : longitude in radians
@@ -68,12 +95,13 @@ def lla2ecef(lat, lon, alt):
     Returns:
         r_ecef : position vector in ECEF frame
     """ 
-    a = R_EARTH
-    e2 = ECCEN_EARTH*ECCEN_EARTH
-    N = a / np.sqrt(1 - e2 * np.sin(lat)**2)
+    a = SMA_EARTH
+    # Radius of curvature in the prime vertical
+    N = a / np.sqrt(1 - ECCEN_EARTH_SQ * np.sin(lat)**2)
+
     x = (N + alt) * np.cos(lat) * np.cos(lon)
     y = (N + alt) * np.cos(lat) * np.sin(lon)
-    z = (N * (1 - e2) + alt) * np.sin(lat)
+    z = (N * (1 - ECCEN_EARTH_SQ) + alt) * np.sin(lat)
     return np.array([x, y, z])
 
 def quat_eci2ecef(t):
