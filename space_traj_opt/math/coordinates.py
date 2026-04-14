@@ -51,9 +51,7 @@ def ecef2lla(r_ecef):
     Args:
         r_ecef : position vector in ECEF frame
     Returns:
-        lat : latitude in radians
-        lon : longitude in radians
-        alt : altitude in meters
+        tuple of (lat, lon, alt) where lat and lon are in radians and alt is in meters
     """ 
     x, y, z = r_ecef
     lon = np.arctan2(y, x)
@@ -67,17 +65,20 @@ def ecef2lla(r_ecef):
     while abs(err) > 1e-10:
         sin_lat = np.sin(lat)
         cos_lat = np.cos(lat)
-
+    
         N = SMA_EARTH / np.sqrt(1 - ECCEN_EARTH_SQ*sin_lat*sin_lat)
 
+        # Safe trig
+        eps = 1e-15
+        safe_sin = sin_lat if abs(sin_lat) > eps else eps
+        safe_cos = cos_lat if abs(cos_lat) > eps else eps
         # Two altitude formulas
-        h1 = p / cos_lat - N
+        h1 = p / safe_cos - N
         # Use alternate formula near the poles to avoid division by cos(lat) ~ 0
-        h2 = z / sin_lat - (1 - ECCEN_EARTH_SQ)*N
+        h2 = z / safe_sin - (1 - ECCEN_EARTH_SQ)*N
 
         # Branchless selector: 1 for non-pole, 0 for near-pole
         use_h1 = float(abs(np.pi/2 - abs(lat)) > 1e-3)
-
         alt = use_h1*h1 + (1 - use_h1)*h2
         new_lat = np.arctan2(z + ECCEN_EARTH_SQ*N*sin_lat, p)
         err = new_lat - lat
