@@ -1,5 +1,5 @@
 import numpy as np
-from .constants import OMEGA_EARTH, SMA_EARTH, ECCEN_EARTH, ECCEN_EARTH_SQ
+from .constants import OMEGA_EARTH, SMA_EARTH, ECCEN_EARTH_SQ
 from .quaternion import quat_conj, q_from_axisangle, q_mult
 
 def eci2ecef(r_eci, t):

@@ -1,6 +1,6 @@
 
 OMEGA_EARTH=7.2921150e-5  # Earth's rotation rate in radians per second
-SMA_EARTH = 6371e3  #  Earth Semi-major Axis [m]
+SMA_EARTH = 6378137.0 #  Earth Semi-major Axis [m]
 STANDARD_GRAV = 9.80665
 SEMI_MAJOR_AXIS_EARTH = 6378137.0  # in meters
 SEMI_MINOR_AXIS_EARTH = 6356752.3142  # in meters
