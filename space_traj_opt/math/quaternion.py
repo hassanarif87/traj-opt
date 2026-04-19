@@ -44,7 +44,7 @@ def q_mult(q1, q2):
     """
     return quat_mat(q1) @ q2
 
-def quat2mat(q):
+def quat2dcm(q):
     """
     Convert a Unit quaternion representing a rotation to a  Transformation matrix
     https://www.astro.rug.nl/software/kapteyn-beta/_downloads/attitude.pdf pg. 15 eq 125
@@ -89,13 +89,13 @@ def quat_deriv(q,omega_b):
 def q_rotate_frame(q, v):
     """Rotate a vector from one frame to another using a quaternion
     """
-    return quat2mat(q) @ v
+    return quat2dcm(q) @ v
 
 def q_rotate_vector(q, v):
     """Rotate a vector in the same frame using a quaternion
     """
     q_conj = quat_conj(q)
-    return quat2mat(q_conj) @ v
+    return quat2dcm(q_conj) @ v
 
 def q_from_axisangle(angle: float, axis: np.array):
     """Create quaternion from and angle and axis

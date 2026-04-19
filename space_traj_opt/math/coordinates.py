@@ -71,7 +71,11 @@ def ecef2lla(r_ecef):
         # Safe trig
         eps = 1e-15
         safe_sin = sin_lat if abs(sin_lat) > eps else eps
-        safe_cos = cos_lat if abs(cos_lat) > eps else eps
+        safe_cos = cos_lat #if abs(cos_lat) > eps else eps
+
+        # safe_sin = np.sign(sin_lat) * np.maximum(abs(sin_lat), eps)
+        # safe_cos = np.sign(cos_lat) * np.maximum(abs(cos_lat), eps)
+
         # Two altitude formulas
         h1 = p / safe_cos - N
         # Use alternate formula near the poles to avoid division by cos(lat) ~ 0
@@ -137,11 +141,14 @@ def quat_ecef2ned(lat, lon):
     Returns:
         q_ecef2ned : quaternion representing rotation from ECEF to NED frame
     """    
+    # First rotate -90 about  ECEF y, points z down
     q1 = q_from_axisangle(-np.pi/2, np.array([0, 1, 0]))
     
-    q2 = q_from_axisangle(-lon, np.array([0, 0, 1]))
+    # Second rotate about intermediate x-axis by lon, points y east
+    q2 = q_from_axisangle(lon, np.array([1, 0, 0]))
 
-    q3 = q_from_axisangle(lat, np.array([1, 0, 0]))
+    # Third rotate about intermediate y-axis by -lat, point X north
+    q3 = q_from_axisangle(-lat, np.array([0, 1, 0]))
     return q_mult(q1, q_mult(q2, q3))
 
 def quat_eci2ned(t, x):
