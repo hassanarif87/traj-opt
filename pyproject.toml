@@ -1,27 +1,32 @@
-[tool.poetry]
+[project]
 name = "space-traj-opt"
 version = "0.1.0"
 description = ""
-authors = ["Hassan Arif <hassanarif87@gmail.com>"]
+authors = [{ name = "Hassan Arif", email = "hassanarif87@gmail.com" }]
 readme = "README.md"
+requires-python = ">=3.10,<3.13"
+dependencies = [
+	"numpy>=2.0.0,<3.0.0",
+	"scipy>=1.11.4,<2.0.0",
+	"pandas>=2.1.4,<3.0.0",
+	"plotly>=5.18.0,<6.0.0",
+	"jupyter>=1.0.0,<2.0.0",
+	"pint>=0.23,<0.24",
+	"sympy>=1.12,<2.0.0",
+	"jax>=0.4.35,<0.5.0",
+	"numba>=0.60.0,<0.61.0",
+	"matplotlib>=3.10.0,<4.0.0",
+]
 
-[tool.poetry.dependencies]
-python = ">=3.10,<3.13"
-numpy = "^2.0.0"
-scipy = "^1.11.4"
-pandas = "^2.1.4"
-plotly = "^5.18.0"
-jupyter = "^1.0.0"
-pint = "^0.23"
-sympy = "^1.12"
-jax = "^0.4.35"
-numba = "^0.60.0"
-matplotlib = "^3.10.0"
+[dependency-groups]
+dev = [
+	"pytest>=8.1.1,<9.0.0",
+	"snakeviz>=2.2.2,<3.0.0",
+]
 
-[tool.poetry.group.dev.dependencies]
-pytest = "^8.1.1"
-snakeviz = "^2.2.2"
+[tool.setuptools.packages.find]
+include = ["space_traj_opt*"]
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
