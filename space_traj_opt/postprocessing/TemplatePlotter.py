@@ -4,12 +4,12 @@ import yaml
 from space_traj_opt.postprocessing.data_client import CSVClient
 
 from space_traj_opt.postprocessing.plotting import plot
-
+from space_traj_opt import TEMPLATES_DIR
 
 class TemplatePlotter:
     """Generate Plotly figures from a YAML plotting template."""
 
-    def __init__(self, template: Path | str, clients: list[CSVClient]):
+    def __init__(self, template: str, clients: list[CSVClient]):
         """
         Initialize the plotter.
 
@@ -21,7 +21,7 @@ class TemplatePlotter:
             CSV clients containing the channel data to plot.
             Each client must have a `name` attribute.
         """
-        self.template = Path(template)
+        self.template = TEMPLATES_DIR / (template + ".yaml")
         self.clients = clients
 
         with self.template.open("r") as f:
@@ -64,6 +64,7 @@ class TemplatePlotter:
         x_data = []
         y_data = []
         trace_names = []
+        phases = []
 
         for client in self.clients:
             x = self._get_channel(client, x_channel)
@@ -74,11 +75,14 @@ class TemplatePlotter:
                 x_data.append(x)
                 y_data.append(y)
                 trace_names.append(f"{channel}.{client.name}")
+                phase = self._get_channel(client, "phase") if "phase" in client.df.columns else None
+                phases.append(phase)
 
         return plot(
             x=x_data,
             y=y_data,
             title=config["name"],
+            phases=phases,
             trace_names=trace_names,
         )
 
