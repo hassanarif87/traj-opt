@@ -54,8 +54,6 @@ class TemplatePlotter:
             for fig in figures:
                 fig.show()
 
-        return figures
-
     def _create_figure(self, config):
         """Create a single figure from a template entry."""
         x_channel = config["xdata"]
