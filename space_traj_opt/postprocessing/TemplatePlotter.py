@@ -93,7 +93,7 @@ class TemplatePlotter:
         return client.get_channels(channel)
 
     @staticmethod
-    def save_html(figures, output: Path):
+    def _save_html(figures, output: Path):
         """Save all generated figures to an HTML file."""
         import plotly.io as pio
 
