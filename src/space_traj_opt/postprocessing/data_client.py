@@ -9,12 +9,14 @@ from space_traj_opt.postprocessing.extract_string import extract_parameterized_s
 class CSVClient:
     """Read simulation channels from a CSV file."""
 
-    def __init__(self, out: str): 
+    def __init__(self, sim_output: str): 
         """ Initialize the client and load the CSV file. 
         The client name is derived from the CSV filename. 
         For example, `my_outputs/traj.csv` has client name `traj`. 
+        Args:
+            sim_output (str): Name of the simulation output, used to construct the CSV file path.
         """ 
-        self.out = OUT_DIR / (out + ".csv")
+        self.out = OUT_DIR / (sim_output + ".csv")
         self.name = self.out.stem 
         self.df = pd.read_csv(self.out)
 
