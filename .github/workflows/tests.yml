@@ -22,7 +22,7 @@ jobs:
           enable-cache: true
 
       - name: Install dependencies
-        run: uv pip install --system -e . pytest
+        run: uv sync --locked --dev
 
       - name: Run unit tests
-        run: python -m pytest
+        run: uv run pytest
