@@ -4,7 +4,7 @@ version = "0.1.0"
 description = ""
 authors = [{ name = "Hassan Arif", email = "hassanarif87@gmail.com" }]
 readme = "README.md"
-requires-python = ">=3.10,<3.13"
+requires-python = ">=3.12,<3.14"
 dependencies = [
 	"numpy>=2.0.0,<3.0.0",
 	"scipy>=1.11.4,<2.0.0",
@@ -14,7 +14,7 @@ dependencies = [
 	"pint>=0.23,<0.24",
 	"sympy>=1.12,<2.0.0",
 	"jax>=0.4.35,<0.5.0",
-	"numba>=0.60.0,<0.61.0",
+	"numba>=0.61.0,<0.62.0",
 	"matplotlib>=3.10.0,<4.0.0",
 ]
 
@@ -24,7 +24,11 @@ dev = [
 	"snakeviz>=2.2.2,<3.0.0",
 ]
 
+[tool.setuptools]
+package-dir = {"" = "src"}
+
 [tool.setuptools.packages.find]
+where = ["src"]
 include = ["space_traj_opt*"]
 
 [build-system]
