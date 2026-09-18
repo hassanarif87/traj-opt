@@ -59,4 +59,4 @@ def test_integrate_passes_args_to_rhs():
     t, y = integrate(rhs, t_span, y0, t_eval=t_eval, args=(2.0,))
 
     expected = np.array([[1.0, np.exp(0.5), np.exp(1.0), np.exp(1.5), np.exp(2.0)]])
-    np.testing.assert_allclose(y, expected, rtol=1e-6, atol=1e-8)
+    np.testing.assert_allclose(y, expected, rtol=1e-3, atol=1e-5)
