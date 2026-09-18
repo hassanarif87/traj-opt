@@ -19,6 +19,21 @@ class CtrlMode(enum.Enum):
     LTS = 3
     POLYNOMIAL = 4
 
+def flight_path_angle(r_vec, v_vec):
+    r = np.linalg.norm(r_vec)
+    v = np.linalg.norm(v_vec)
+
+    # Radial velocity
+    v_r = np.dot(r_vec, v_vec) / r
+
+    # Transverse velocity
+    v_t = np.sqrt(v**2 - v_r**2)
+
+    # Flight path angle
+    gamma = np.arctan2(v_r, v_t)
+
+    return gamma
+
     
 def dir_from_pitch_yaw(pitch, yaw):
     # Convert pitch and yaw to a unit vector in the rsw frame
@@ -43,8 +58,7 @@ def lts_control(t: float, x: npt.ArrayLike, params) -> npt.ArrayLike:
     a,b,c,d = params  # LTS gain
     pitch = np.arctan(a * t + b)
     yaw = np.arctan(c * t + d)
-    thrust_rsw = dir_from_pitch_yaw(pitch, yaw)
-    # Convert from RSW to ECI frame (assuming circular orbit for simplicity)
+    thrust_rsw = dir_from_pitch_yaw(np.pi/2 - pitch, yaw)
     thrust_eci = dcm_rsw2eci(x[0:3], x[3:6])  @ thrust_rsw
     return normalize(thrust_eci)
 

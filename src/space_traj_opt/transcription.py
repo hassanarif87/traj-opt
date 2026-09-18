@@ -6,6 +6,7 @@ from scipy.integrate import solve_ivp, OdeSolution
 from functools import lru_cache
 from space_traj_opt.models3d import dynamics
 from concurrent.futures import ThreadPoolExecutor
+from space_traj_opt.math.integrator import integrate
 
 class MultiShootingTranscription:
     """A class to transcribe a multi-phase trajectory optimization problem into a Nonlinear Programming (NLP) problem using multiple shooting.
@@ -396,14 +397,18 @@ class MultiShootingTranscription:
         Returns:
             OdeSolution: The solution of the phase
         """
-        sol = solve_ivp(
+        class Result:
+            def __init__(self,t,  y):
+                self.y = y
+                self.t = t
+        t_sol, y_sol = integrate(
             dynamics, 
             t_span=[0.0, t_terminal], 
             t_eval= np.linspace(0.0, t_terminal,50), # This greatly improves convergance and stability of the jac
             y0=x0,    
             args=(params,)
         )
-        return sol  
+        return Result(t_sol, y_sol)  
     
     def full_traj_rollout(self, decision_var, config_list)->list[OdeSolution]:
         """Rolls out all the trajectory segments. Each segment is rolled out in parallel using ThreadPoolExecutor.
