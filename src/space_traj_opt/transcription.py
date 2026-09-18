@@ -416,7 +416,7 @@ class MultiShootingTranscription:
         """
         def process_phase(config):
             u, x, t_terminal, control_law = self.unpack_decision_var(decision_var, config)
-            
+            print(f" State x: {x}")
             # make inputs hashable, needed for lru cache, the copy is cheaper than a second f(x) eval
             u_ = tuple(u.tolist())
             x_ = tuple(x.tolist())

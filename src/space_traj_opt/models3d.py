@@ -54,7 +54,6 @@ def dynamics_plant(
     unit_thrust_eci = u
 
     thrust_eci = unit_thrust_eci *thrust  # Thrust along x-axis in body frame
-
     # Atmospheric properties (altitude = r_mag - Earth's radius)
     # altitude = r_mag - R_EARTH
     # speed_of_sound, rho = get_atm(altitude)

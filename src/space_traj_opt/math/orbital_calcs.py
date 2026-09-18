@@ -114,8 +114,8 @@ def rv_to_aei(r_vec, v_vec, mu):
     e = np.linalg.norm(e_vec)
 
     # Inclination
-    i = np.arccos(h_vec[2] / h)
-
+    i = np.arccos(np.clip(h_vec[2] / h, -1.0, 1.0))
+    
     # Specific orbital energy
     energy = 0.5 * v**2 - mu / r
 

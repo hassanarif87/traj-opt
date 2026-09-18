@@ -19,13 +19,14 @@ class CtrlMode(enum.Enum):
     LTS = 3
     POLYNOMIAL = 4
 
+    
 def dir_from_pitch_yaw(pitch, yaw):
-    # Convert pitch and yaw to a unit vector in the desired direction
-    x = np.cos(pitch) * np.cos(yaw)
-    y = np.cos(pitch) * np.sin(yaw)
-    z = np.sin(pitch)
-    return np.array([x, y, z])
+    # Convert pitch and yaw to a unit vector in the rsw frame
+    r = np.cos(pitch) * np.cos(yaw)
+    s = np.sin(pitch) * np.cos(yaw)
+    w = np.sin(yaw)
 
+    return np.array([r, s, w])
 
 def lts_control(t: float, x: npt.ArrayLike, params) -> npt.ArrayLike:
     """LTS control law
@@ -42,7 +43,6 @@ def lts_control(t: float, x: npt.ArrayLike, params) -> npt.ArrayLike:
     a,b,c,d = params  # LTS gain
     pitch = np.arctan(a * t + b)
     yaw = np.arctan(c * t + d)
-
     thrust_rsw = dir_from_pitch_yaw(pitch, yaw)
     # Convert from RSW to ECI frame (assuming circular orbit for simplicity)
     thrust_eci = dcm_rsw2eci(x[0:3], x[3:6])  @ thrust_rsw

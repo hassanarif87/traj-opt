@@ -179,13 +179,13 @@ def quat_ned2eci(t, x):
 
 
 def dcm_rsw2eci(r_vec, v_vec):
-    """Get the quaternion representing the rotation from RSW to ECI frame given position and velocity vectors
+    """Get the rotation matrix representing the rotation from RSW to ECI frame given position and velocity vectors
 
     Args:
         r_vec : position vector in ECI frame
         v_vec : velocity vector in ECI frame
     Returns:
-        q_rsw2eci : quaternion representing rotation from RSW to ECI frame
+        dcm_rsw2eci : 3x3 rotation matrix from RSW to ECI frame
     """     
     # Radial unit vector
     r_hat = r_vec / np.linalg.norm(r_vec)
