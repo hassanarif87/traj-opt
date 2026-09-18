@@ -2,13 +2,18 @@ import numpy.typing as npt
 import numpy as np
 from copy import deepcopy
 from space_traj_opt.models import CtrlMode
-from scipy.integrate import solve_ivp, OdeSolution
 from functools import lru_cache
-#from space_traj_opt.models3d import dynamics
-from space_traj_opt.models import dynamics
+from space_traj_opt.models3d import dynamics
+#from space_traj_opt.models import dynamics
 
 from concurrent.futures import ThreadPoolExecutor
 from space_traj_opt.math.integrator import integrate
+
+
+class OdeResult:
+    def __init__(self,t,  y):
+        self.y = y
+        self.t = t
 
 class MultiShootingTranscription:
     """A class to transcribe a multi-phase trajectory optimization problem into a Nonlinear Programming (NLP) problem using multiple shooting.
@@ -386,7 +391,7 @@ class MultiShootingTranscription:
     
     @staticmethod
     @lru_cache(maxsize=128, typed=True) 
-    def traj_rollout(t_terminal:float, x0: np.array, params: tuple) -> OdeSolution:
+    def traj_rollout(t_terminal:float, x0: np.array, params: tuple) -> OdeResult:
         """Integrates a phase of the trajectory.
         The trajectory is evaluated at a set time points using t_eval, this greatly improves convergance and stability of the gradients 
         lru_cache decerases the time required to calculate the jac, since scipy uses forward diff the cached f(x) is used instead of a re-compute
@@ -396,12 +401,9 @@ class MultiShootingTranscription:
             params : Phase Parameter
 
         Returns:
-            OdeSolution: The solution of the phase
+            OdeResult: The solution of the phase
         """
-        class Result:
-            def __init__(self,t,  y):
-                self.y = y
-                self.t = t
+
         t_sol, y_sol = integrate(
             dynamics, 
             t_span=[0.0, t_terminal], 
@@ -409,9 +411,9 @@ class MultiShootingTranscription:
             y0=x0,    
             args=(params,)
         )
-        return Result(t_sol, y_sol)  
+        return OdeResult(t_sol, y_sol)  
     
-    def full_traj_rollout(self, decision_var, config_list)->list[OdeSolution]:
+    def full_traj_rollout(self, decision_var, config_list)->list[OdeResult]:
         """Rolls out all the trajectory segments. Each segment is rolled out in parallel using ThreadPoolExecutor.
         Args:
             decision_var : Optimzation decission vector
