@@ -166,6 +166,6 @@ def control(t: float, x: npt.ArrayLike, params: tuple, t_phase_start: float = 0)
         #     thrust_eci = polynomial_steering(t, x, ctrl_param)
         case _:
             thrust_eci = np.array([1.0, 0.0, 0.0])  # Default thrust vector (zero)
-            print("Control mode not define")
+            print("3d Control mode not defined")
 
     return thrust_eci

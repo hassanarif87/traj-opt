@@ -4,7 +4,9 @@ from copy import deepcopy
 from space_traj_opt.models import CtrlMode
 from scipy.integrate import solve_ivp, OdeSolution
 from functools import lru_cache
-from space_traj_opt.models3d import dynamics
+#from space_traj_opt.models3d import dynamics
+from space_traj_opt.models import dynamics
+
 from concurrent.futures import ThreadPoolExecutor
 from space_traj_opt.math.integrator import integrate
 
@@ -141,7 +143,6 @@ class MultiShootingTranscription:
         d0_bounds.extend(self.terminal_bounds)
         normalization_vec.extend(self.terminal_normvec)
         for _, value in phase_configs_built.items():
-            print("value", value)
             phase_configs_tuple.append(tuple(value))
         # Convert decision variables to numpy array for consistency
         d0 = np.array(d0, dtype=float)
@@ -421,7 +422,6 @@ class MultiShootingTranscription:
         """
         def process_phase(config):
             u, x, t_terminal, control_law = self.unpack_decision_var(decision_var, config)
-            print(f" State x: {x}")
             # make inputs hashable, needed for lru cache, the copy is cheaper than a second f(x) eval
             u_ = tuple(u.tolist())
             x_ = tuple(x.tolist())
