@@ -40,15 +40,13 @@ def lts_control(t: float, x: npt.ArrayLike, params) -> npt.ArrayLike:
     """
 
     a,b,c,d = params  # LTS gain
-
     pitch = np.arctan(a * t + b)
     yaw = np.arctan(c * t + d)
 
     thrust_rsw = dir_from_pitch_yaw(pitch, yaw)
-
     # Convert from RSW to ECI frame (assuming circular orbit for simplicity)
-    thrust_eci = dcm_rsw2eci(x[0], x[1])  @ thrust_rsw
-    return thrust_eci    
+    thrust_eci = dcm_rsw2eci(x[0:3], x[3:6])  @ thrust_rsw
+    return normalize(thrust_eci)
 
 def ned_steering(t: float, x: npt.ArrayLike, params, t_phase_start=0) -> npt.ArrayLike:
 
@@ -140,7 +138,7 @@ def control(t: float, x: npt.ArrayLike, params: tuple, t_phase_start: float = 0)
         x : Vehicle state
         params : Tuple of parameters containing the control type and control law parameters
     Returns:
-        Desired pitch
+        Desired unit thrust vector in ECI frame
     """
     ctrl_mode, ctrl_param = params
     match ctrl_mode:

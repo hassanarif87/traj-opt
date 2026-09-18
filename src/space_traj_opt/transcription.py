@@ -4,7 +4,7 @@ from copy import deepcopy
 from space_traj_opt.models import CtrlMode
 from scipy.integrate import solve_ivp, OdeSolution
 from functools import lru_cache
-from space_traj_opt.models import dynamics
+from space_traj_opt.models3d import dynamics
 from concurrent.futures import ThreadPoolExecutor
 
 class MultiShootingTranscription:
@@ -44,10 +44,11 @@ class MultiShootingTranscription:
     set_non_zero_defect(defect_phases,
     """
 
-    def __init__(self, phase_names, num_states):
+    def __init__(self, phase_names, num_states, dynamics ):
         self.phase_names = phase_names
         self.num_states = num_states
         self.num_phases = len(phase_names)
+        self.dynamics = dynamics
         self.phase_configs = {}
         self.x0_array = {}
         self.u0_array = {}
@@ -56,7 +57,6 @@ class MultiShootingTranscription:
         self.terminal_state = None
         self.terminal_bounds = None
         self.terminal_normvec = None
-
         self.params = {}
         for phase in phase_names:
             self.defects[phase] = np.zeros(num_states)
@@ -140,6 +140,7 @@ class MultiShootingTranscription:
         d0_bounds.extend(self.terminal_bounds)
         normalization_vec.extend(self.terminal_normvec)
         for _, value in phase_configs_built.items():
+            print("value", value)
             phase_configs_tuple.append(tuple(value))
         # Convert decision variables to numpy array for consistency
         d0 = np.array(d0, dtype=float)
@@ -193,9 +194,10 @@ class MultiShootingTranscription:
         norm_vec : Vector used to normalize the controls
         """
         self.u0_array[phase_name] = u0
+        bounds_checker = np.array(bounds)
         if bounds is None:
             bounds = [(None, None) for _ in u0]
-        elif (bounds == u0).all():
+        elif (bounds_checker.shape == u0.shape) and (bounds_checker == u0).all():
             bounds = [(val, val) for val in u0]
         self.u0_array[phase_name + "_bnds"] = bounds
         self.u0_array[phase_name + "_normvec"] = norm_vec
@@ -390,7 +392,7 @@ class MultiShootingTranscription:
             t_terminal : Terminal time of the phase
             x0 : Initial state of the phase
             params : Phase Parameter
-    
+
         Returns:
             OdeSolution: The solution of the phase
         """
@@ -414,6 +416,7 @@ class MultiShootingTranscription:
         """
         def process_phase(config):
             u, x, t_terminal, control_law = self.unpack_decision_var(decision_var, config)
+            
             # make inputs hashable, needed for lru cache, the copy is cheaper than a second f(x) eval
             u_ = tuple(u.tolist())
             x_ = tuple(x.tolist())
