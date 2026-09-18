@@ -114,6 +114,18 @@ def test_denormalize_decision_vec():
 
     np.testing.assert_allclose(denormalized_vector, expected_denormalized_vector)
 
+def test_traj_rollout():
+    t_terminal = 1.0
+    x0 = (0.0, 0.0, 0.0, 0.0, 10000.0)
+    params = ((1000.0, 100.0), (CtrlMode.ANGLE_STEER, (0.5,)))
+
+    solution = MultiShootingTranscription.traj_rollout(t_terminal, x0, params)
+
+    assert solution.success
+    assert solution.t.shape == (50,)
+    assert solution.y.shape == (5, 50)
+    np.testing.assert_allclose(solution.t, np.linspace(0.0, t_terminal, 50))
+    np.testing.assert_allclose(solution.y[:, 0], x0)
 
 # Run the tests
 if __name__ == "__main__":
