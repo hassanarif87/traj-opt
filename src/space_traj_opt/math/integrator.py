@@ -1,5 +1,10 @@
 import numpy as np
 
+class OdeResult:
+    def __init__(self,t,  y):
+        self.y = y
+        self.t = t
+
 
 def integrate(fun, t_span, y0, t_eval=None, args=()):
     """

@@ -21,11 +21,11 @@ def test_dynamics():
 def test_dynamics_plant():
     t = 0.0
     x = np.array([EARTH_RADIUS, 0.0, 0.0, 1000, 10.0, 0.0, 10000.0])
-    u = [100,0,0]
+    u = np.array([100,0,0])
     params = (1000.0, 100.0)
     
     res_dx = dynamics_plant(t, x, u, params)
-    assert len(res_dx) == 5
+    assert len(res_dx) == 7
     np.testing.assert_allclose(res_dx, np.array([ 0., 0., 0.08775826, -9.75870745, -1.01971621]))
 
 # Run the tests
