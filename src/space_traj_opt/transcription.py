@@ -94,10 +94,52 @@ class MultiShootingTranscription:
             f")"
         )
 
-    def add_phase(name: str, phase: Phase):
-        pass
-    def add_defect(name: str, phases: list[Phase, Phase], defect: Phase):
-        pass
+    def add_phase(self, name: str, phase: Phase):
+        """Register a phase with this transcription."""
+        if not isinstance(name, str) or not name:
+            raise ValueError("Phase name must be a non-empty string")
+        if not isinstance(phase, Phase):
+            raise TypeError("phase must be a Phase instance")
+        if name in self.phase_dict:
+            raise ValueError(f"Phase already registered: {name}")
+
+        phase.name = name
+        self.phase_dict[name] = phase
+
+    def add_defect(
+        self,
+        name: str,
+        phases: tuple[Phase, Phase],
+        defect: PhaseDefect,
+    ):
+        """Register a defect between two adjacent registered phases."""
+        if not isinstance(name, str) or not name:
+            raise ValueError("Defect name must be a non-empty string")
+        if name in self.defect_dict:
+            raise ValueError(f"Defect already registered: {name}")
+        if len(phases) != 2 or not all(isinstance(phase, Phase) for phase in phases):
+            raise TypeError("phases must contain exactly two Phase instances")
+        if not isinstance(defect, PhaseDefect):
+            raise TypeError("defect must be a PhaseDefect instance")
+        if any(phase.name not in self.phase_dict for phase in phases):
+            raise ValueError("Both defect phases must be registered first")
+
+        phase_names = list(self.phase_dict)
+        first_idx = phase_names.index(phases[0].name)
+        second_idx = phase_names.index(phases[1].name)
+        if second_idx != first_idx + 1:
+            raise ValueError("Defect phases must be adjacent")
+
+        self.defect_dict[name] = (phases, defect)
+
+    def add_terminal(self, terminal: TerminalConditions):
+        """Register the terminal conditions for this transcription."""
+        if not isinstance(terminal, TerminalConditions):
+            raise TypeError("terminal must be a TerminalConditions instance")
+        if self.terminal_conditons is not None:
+            raise ValueError("Terminal conditions already registered")
+
+        self.terminal_conditons = terminal
     
     def build(self):
         """
@@ -121,10 +163,8 @@ class MultiShootingTranscription:
         normalization_vec = []
         ctrl_idx = 0
 
-        # Deepcopy to keep member variables unaltered
         phase_configs_built = deepcopy(self.phase_configs)
         phase_configs_tuple = []
-        # Loop through each phase
         for phase_name in self.phase_names:
             # Append controls and their bounds
             if phase_name in self.u0_array:
@@ -135,9 +175,7 @@ class MultiShootingTranscription:
                 normalization_vec.extend(self.u0_array.get(f"{phase_name}_normvec", []))
             # Append states and their bounds
             if phase_name in self.x0_array:
-                d0.extend(
-                    self.x0_array[phase_name].flatten()
-                )  # Flatten the state array
+                d0.extend(self.x0_array[phase_name].flatten())
                 d0_bounds.extend(self.x0_array.get(f"{phase_name}_bnds", []))
                 normalization_vec.extend(self.x0_array.get(f"{phase_name}_normvec", []))
 
