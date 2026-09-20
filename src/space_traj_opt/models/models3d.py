@@ -3,7 +3,7 @@ import numpy as np
 import numpy.typing as npt
 
 from space_traj_opt.math.constants import MU_EARTH, STANDARD_GRAV
-from space_traj_opt.controller3d import control
+from space_traj_opt.models.controller3d import control
 
 def dynamics(t: float, x: npt.ArrayLike, params) -> npt.ArrayLike:
     """Full system dynamics

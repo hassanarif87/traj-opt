@@ -1,6 +1,6 @@
 import numpy as np
 
-from space_traj_opt.controller3d import (
+from space_traj_opt.models.controller3d import (
     CtrlMode,
     aero_steering,
     control,

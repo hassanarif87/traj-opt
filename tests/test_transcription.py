@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
-from space_traj_opt.transcription import MultiShootingTranscription
-from space_traj_opt.models import CtrlMode
-from space_traj_opt.phases import DynEnum, Phase, PhaseDefect, TerminalConditions
+from space_traj_opt.optimization.transcription import MultiShootingTranscription
+from space_traj_opt.models.models import CtrlMode
+from space_traj_opt.optimization.phases import DynEnum, Phase, PhaseDefect, TerminalConditions
 
 def test_multishooting_construction():
     problem = MultiShootingTranscription(["phase0", "phase1", "phase2"], 5)

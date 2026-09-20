@@ -4,7 +4,7 @@ import enum
 
 from space_traj_opt.math.coordinates import  quat_ned2eci, dcm_rsw2eci, quat_ecef2eci
 from space_traj_opt.math.quaternion import q_rotate_frame
-from space_traj_opt.aero_model import get_wind_relative_velocity
+from space_traj_opt.models.aero_model import get_wind_relative_velocity
 
 
 def normalize(v):

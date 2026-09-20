@@ -1,7 +1,7 @@
 import numpy as np
 
-from space_traj_opt.models import CtrlMode
-from space_traj_opt.phases import DynEnum, Phase, PhaseDefect, TerminalConditions
+from space_traj_opt.models.models import CtrlMode
+from space_traj_opt.optimization.phases import DynEnum, Phase, PhaseDefect, TerminalConditions
 
 
 def test_set_state():

@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
-from space_traj_opt.controller3d import CtrlMode
-from space_traj_opt.models3d import (
+from space_traj_opt.models.controller3d import CtrlMode
+from space_traj_opt.models.models3d import (
     dynamics,
     dynamics_plant,
 )
