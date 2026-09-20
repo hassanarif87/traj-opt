@@ -76,7 +76,7 @@ def ned_steering(t: float, x: npt.ArrayLike, params, t_phase_start=0) -> npt.Arr
         Desired unit thrust unit vector in ECI frame
     """
     # Placeholder implementation, replace with actual NED steering logic
-    ned_dir = params[0]  # Desired NED direction as a unit vector
+    ned_dir = params # Desired NED direction as a unit vector
 
     q = quat_ned2eci(t_phase_start, x)  # Get current NED to ECI rotation
     return q_rotate_frame(q, ned_dir)  # Rotate by desired NED direction
