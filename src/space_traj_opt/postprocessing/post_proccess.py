@@ -26,5 +26,5 @@ def sol_to_csv(sol_list: list, header: list[str], out_name : str):
     """Convert a list of solver solutions into a single CSV file."""
     out : Path = OUT_DIR / (out_name + ".csv")
     out.parent.mkdir(parents=True, exist_ok=True)
-    df = sol_to_dataframe(sol_list, header)
+    df : pd.DataFrame = sol_to_dataframe(sol_list, header)
     df.to_csv(out, index=False)

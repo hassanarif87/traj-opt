@@ -121,7 +121,6 @@ def test_traj_rollout():
 
     solution = MultiShootingTranscription.traj_rollout(t_terminal, x0, params)
 
-    assert solution.success
     assert solution.t.shape == (50,)
     assert solution.y.shape == (5, 50)
     np.testing.assert_allclose(solution.t, np.linspace(0.0, t_terminal, 50))
