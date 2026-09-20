@@ -2,76 +2,53 @@ import numpy as np
 import pytest
 from space_traj_opt.transcription import MultiShootingTranscription
 from space_traj_opt.models import CtrlMode
+from space_traj_opt.phases import DynEnum, Phase, PhaseDefect, TerminalConditions
 
 def test_multishooting_construction():
     problem = MultiShootingTranscription(["phase0", "phase1", "phase2"], 5)
     assert ["phase0", "phase1", "phase2"] == list(problem.phase_names)
 
-def test_set_dynamics_params():
-    problem = MultiShootingTranscription(["phase0", "phase1"], num_states=4)
-    params_phase0 = (1.0, 2.0, 3.0)
-    params_phase1 = (4.0, 5.0, 6.0)
+def test_repr_uses_dataclass_representations():
+    problem = MultiShootingTranscription(["phase0"], num_states=2)
+    phase = Phase("phase0", DynEnum.DYNAMICS_2D, CtrlMode.ANGLE_STEER)
+    terminal = TerminalConditions(np.array([1.0, 2.0]), [(0.0, 3.0)] * 2, [1.0] * 2)
 
-    problem.set_dynamics_params("phase0", params_phase0)
-    problem.set_dynamics_params("phase1", params_phase1)
+    problem.add_phase("phase0", phase)
+    problem.add_terminal(terminal)
 
-    assert problem.params["phase0"] == params_phase0
-    assert problem.params["phase1"] == params_phase1
+    output = repr(problem)
 
-def test_set_phase_init_x():
-    problem = MultiShootingTranscription(["phase0"], num_states=4)
-    x0 = np.array([1.0, 2.0, 3.0, 4.0])
-    bounds = [(0.0, 2.0), (1.0, 3.0), (2.0, 4.0), (3.0, 5.0)]
-    norm_vec = [1.0, 1.0, 1.0, 1.0]
+    assert "phase_dict={'phase0': Phase(" in output
+    assert "terminal_conditons=TerminalConditions(" in output
 
-    problem.set_phase_init_x("phase0", x0, bounds, norm_vec)
+def test_build_uses_registered_phase_data():
+    phase = Phase("phase0", DynEnum.DYNAMICS_2D, CtrlMode.ANGLE_STEER)
+    phase.set_controller(CtrlMode.ANGLE_STEER, np.array([1.0, 2.0]), [(0.0, 3.0)] * 2, [1.0] * 2)
+    phase.set_state(DynEnum.DYNAMICS_2D, np.array([3.0, 4.0]), [(0.0, 5.0)] * 2, [1.0] * 2)
+    phase.set_time(5.0, (1.0, 10.0))
+    problem = MultiShootingTranscription(["phase0"], num_states=2)
+    problem.add_phase("phase0", phase)
+    problem.add_terminal(TerminalConditions(np.array([6.0, 7.0]), [(0.0, 8.0)] * 2, [1.0] * 2))
 
-    assert np.array_equal(problem.x0_array["phase0"], x0)
-    assert problem.x0_array["phase0_bnds"] == bounds
-    assert problem.x0_array["phase0_normvec"] == norm_vec
+    d0, bounds, normalization, configs = problem.build()
 
-def test_set_phase_control():
-    problem = MultiShootingTranscription(["phase0"], num_states=4)
-    u0 = np.array([1.0, 2.0])
-    bounds = [(0.0, 2.0), (1.0, 3.0)]
-    norm_vec = [1.0, 1.0]
+    np.testing.assert_allclose(d0, [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0])
+    assert len(bounds) == len(d0)
+    assert len(normalization) == len(d0)
+    assert configs == [(CtrlMode.ANGLE_STEER, (0, 2), None, DynEnum.DYNAMICS_2D)]
 
-    problem.set_phase_control("phase0", CtrlMode.ANGLE_STEER, u0, bounds, norm_vec)
 
-    assert np.array_equal(problem.u0_array["phase0"], u0)
-    assert problem.u0_array["phase0_bnds"] == bounds
-    assert problem.u0_array["phase0_normvec"] == norm_vec
-    assert problem.phase_configs["phase0"] == [CtrlMode.ANGLE_STEER]
+def test_registers_adjacent_defect():
+    phase0 = Phase("phase0", DynEnum.DYNAMICS_2D, CtrlMode.ANGLE_STEER)
+    phase1 = Phase("phase1", DynEnum.DYNAMICS_2D, CtrlMode.ANGLE_STEER)
+    problem = MultiShootingTranscription(["phase0", "phase1"], num_states=2)
+    problem.add_phase("phase0", phase0)
+    problem.add_phase("phase1", phase1)
+    defect = PhaseDefect("defect", np.array([0.1, 0.2]), np.array([1.0, 1.0]))
 
-def test_set_phase_time():
-    problem = MultiShootingTranscription(["phase0"], num_states=4)
-    t0 = 10.0
-    bounds = (5.0, 15.0)
+    problem.add_defect("defect", (phase0, phase1), defect)
 
-    problem.set_phase_time("phase0", t0, bounds)
-
-    assert problem.t0_array["phase0"] == t0
-    assert problem.t0_array["phase0_bnds"] == bounds
-
-def test_set_non_zero_defect():
-    problem = MultiShootingTranscription(["phase0", "phase1"], num_states=4)
-    defect_vec = np.array([0.1, 0.2, 0.3, 0.4])
-
-    problem.set_non_zero_defect(("phase0", "phase1"), defect_vec)
-
-    assert np.array_equal(problem.defects["phase1"], defect_vec)
-
-def test_set_terminal_state():
-    problem = MultiShootingTranscription(["phase0"], num_states=4)
-    x_final = np.array([1.0, 2.0, 3.0, 4.0])
-    bounds = [(0.0, 2.0), (1.0, 3.0), (2.0, 4.0), (3.0, 5.0)]
-    norm_vec = [1.0, 1.0, 1.0, 1.0]
-
-    problem.set_terminal_state(x_final, bounds, norm_vec)
-
-    assert np.array_equal(problem.terminal_state, x_final)
-    assert problem.terminal_bounds == bounds
-    assert problem.terminal_normvec == norm_vec
+    assert problem.defect_dict["defect"] == ((phase0, phase1), defect)
 
 def test_unpack_decision_var():
     problem = MultiShootingTranscription(["phase0"], num_states=4)
