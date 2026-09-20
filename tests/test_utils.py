@@ -1,7 +1,7 @@
 import pytest
 from scipy.integrate import OdeSolution
 import numpy as np
-from space_traj_opt.utils import unpack_sol_list
+from space_traj_opt.postprocessing.utils import unpack_sol_list
 
 def test_unpack_sol_list():
     # Create mock OdeSolution objects
