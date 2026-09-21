@@ -63,7 +63,6 @@ def _build_phase(config: PhaseConfig) -> Phase:
 
     state_guess = np.asarray(config.state.guess, dtype=float)
     phase.set_state(
-        dynamics,
         state_guess,
         bounds=_as_bounds(config.state.bounds),
         norm_vec=config.state.normalize,

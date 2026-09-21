@@ -15,7 +15,7 @@ def test_set_state():
     bounds = [(0.0, 2.0), (1.0, 3.0), (2.0, 4.0), (3.0, 5.0)]
     norm_vec = [1.0, 1.0, 1.0, 1.0]
 
-    phase.set_state(DynEnum.DYNAMICS_2D, x0, bounds, norm_vec)
+    phase.set_state(x0, bounds, norm_vec)
 
     assert np.array_equal(phase.x_guess, x0)
     assert phase.x_bounds == bounds

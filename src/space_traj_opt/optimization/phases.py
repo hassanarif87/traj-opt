@@ -25,7 +25,6 @@ class Phase:
 
     def set_state(
             self,  
-            dynamics_type : DynEnum,   
             x0: npt.ArrayLike,
             bounds: None | npt.ArrayLike | tuple = None,
             norm_vec: None | npt.ArrayLike |list= None
@@ -34,13 +33,11 @@ class Phase:
 
         Parameters
         ----------
-        dynamics_type: Type of dynamics model used for this phase.
         x0 : The initial state for the phase.
         bounds : The bounds for the initial state. If None, no bounds are applied. \
             If equal to `x0`, the bounds are fixed at `x0` values. Default is None.
         norm_vec : Vector used to normalize the states
         """
-        self.dynamics_type = dynamics_type
         self.x_guess = x0
         if bounds is None:
             bounds = [(0., None) for _ in x0]
