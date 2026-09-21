@@ -5,7 +5,7 @@ from space_traj_opt.optimization.phases import DynEnum, Phase, PhaseDefect, Term
 
 
 def test_set_state():
-    phase = Phase("phase0", DynEnum.DYNAMICS_2D, CtrlMode.ANGLE_STEER)
+    phase = Phase("phase0", DynEnum.DYNAMICS_2D, CtrlMode.ANGLE_STEER, ())
     x0 = np.array([1.0, 2.0, 3.0, 4.0])
     bounds = [(0.0, 2.0), (1.0, 3.0), (2.0, 4.0), (3.0, 5.0)]
     norm_vec = [1.0, 1.0, 1.0, 1.0]
@@ -19,7 +19,7 @@ def test_set_state():
 
 
 def test_set_controller():
-    phase = Phase("phase0", DynEnum.DYNAMICS_2D, CtrlMode.ANGLE_STEER)
+    phase = Phase("phase0", DynEnum.DYNAMICS_2D, CtrlMode.ANGLE_STEER, ())
     u0 = np.array([1.0, 2.0])
     bounds = [(0.0, 2.0), (1.0, 3.0)]
     norm_vec = [1.0, 1.0]
@@ -33,7 +33,7 @@ def test_set_controller():
 
 
 def test_set_time():
-    phase = Phase("phase0", DynEnum.DYNAMICS_2D, CtrlMode.ANGLE_STEER)
+    phase = Phase("phase0", DynEnum.DYNAMICS_2D, CtrlMode.ANGLE_STEER, ())
 
     phase.set_time(10.0, (5.0, 15.0))
 
@@ -41,7 +41,7 @@ def test_set_time():
     assert phase.t_bounds == (5.0, 15.0)
 
 def test_set_time_nobounds():
-    phase = Phase("phase0", DynEnum.DYNAMICS_2D, CtrlMode.ANGLE_STEER)
+    phase = Phase("phase0", DynEnum.DYNAMICS_2D, CtrlMode.ANGLE_STEER, ())
 
     phase.set_time(10.0)
 
@@ -49,7 +49,7 @@ def test_set_time_nobounds():
     assert phase.t_bounds == (0.0, None)
 
 def test_set_time_fixed_bound():
-    phase = Phase("phase0", DynEnum.DYNAMICS_2D, CtrlMode.ANGLE_STEER)
+    phase = Phase("phase0", DynEnum.DYNAMICS_2D, CtrlMode.ANGLE_STEER, ())
 
     phase.set_time(10.0, 10.0)
 
