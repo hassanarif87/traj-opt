@@ -12,6 +12,7 @@ class Phase:
     name: str
     dynamics_type: DynEnum
     control_type: CtrlMode
+    model_params : tuple
     x_guess: None | npt.ArrayLike = None
     x_normalize: None | npt.ArrayLike |list= None
     x_bounds: None | npt.ArrayLike | tuple = None,

@@ -1,23 +1,10 @@
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass
-from functools import lru_cache
 
 import numpy as np
 
-from space_traj_opt.math.integrator import OdeResult, integrate
-from space_traj_opt.models.dynamics import dynamics
-from space_traj_opt.optimization.phases import (
-    Phase,
-    PhaseDefect,
-    TerminalConditions
-)
-from space_traj_opt.optimization.utils import (
-    normalize_decision_vec,
-    denormalize_decision_vec,
-    traj_rollout
-)
-
-
+from space_traj_opt.math.integrator import OdeResult
+from space_traj_opt.optimization.phases import Phase, PhaseDefect, TerminalConditions
+from space_traj_opt.optimization.utils import traj_rollout
 
 
 class MultiShootingTranscription:
@@ -91,17 +78,14 @@ class MultiShootingTranscription:
     def __init__(self, phase_names, num_states ):
         self.phase_names = phase_names
         self.num_states = num_states
-
+        self.num_phases = len(phase_names)
+        
         self.phase_dict = {}
         self.defect_dict = {}
         self.terminal_conditons = None
-
+        self.num_terminal_states = 0
         self.params = {}
 
-        # Initialize to ero defect between phases
-        for phase in phase_names:
-            self.defects[phase] = np.zeros(num_states)
-        self.defects[phase_names[0]] = None
 
     def __repr__(self):
         return (
@@ -127,24 +111,29 @@ class MultiShootingTranscription:
     def add_defect(
         self,
         name: str,
-        phases: tuple[Phase, Phase],
+        phases: tuple[str, str],
         defect: PhaseDefect,
     ):
-        """Register a defect between two adjacent registered phases."""
+        """Register a defect between two adjacent registered phases.
+        Args:
+            name: Name of the defect.
+            phases: Names of phases in between the defect exists.
+            defect: defect struct.
+        """
         if not isinstance(name, str) or not name:
             raise ValueError("Defect name must be a non-empty string")
         if name in self.defect_dict:
             raise ValueError(f"Defect already registered: {name}")
-        if len(phases) != 2 or not all(isinstance(phase, Phase) for phase in phases): # TODO: move to defect builder
+        if len(phases) != 2: # TODO: move to defect builder
             raise TypeError("phases must contain exactly two Phase instances")
         if not isinstance(defect, PhaseDefect):
             raise TypeError("defect must be a PhaseDefect instance")
-        if any(phase.name not in self.phase_dict for phase in phases):
+        if any(phase not in self.phase_dict for phase in phases):
             raise ValueError("Both defect phases must be registered first")
 
         phase_names = list(self.phase_dict)
-        first_idx = phase_names.index(phases[0].name)
-        second_idx = phase_names.index(phases[1].name)
+        first_idx = phase_names.index(phases[0])
+        second_idx = phase_names.index(phases[1])
         if second_idx != first_idx + 1:
             raise ValueError("Defect phases must be adjacent")
 
@@ -157,6 +146,7 @@ class MultiShootingTranscription:
         if self.terminal_conditons is not None:
             raise ValueError("Terminal conditions already registered")
 
+        self.num_terminal_states = len(terminal.x_final)
         self.terminal_conditons = terminal
     
     def build(self):
@@ -183,7 +173,7 @@ class MultiShootingTranscription:
 
         phase_configs_built = {}
         phase_configs_tuple = []
-        for phase_name in self.phase_names:
+        for idx, phase_name in enumerate(self.phase_names):
             phase = self.phase_dict[phase_name]
 
             # Append controls and their bounds
@@ -210,15 +200,16 @@ class MultiShootingTranscription:
                 (
                     defect.defect
                     for phases, defect in self.defect_dict.values()
-                    if phases[1].name == phase_name
+                    if phases[1] == phase_name
                 ),
-                None,
+                np.zeros(self.num_states),
             )
             phase_configs_built[phase_name] = [
                 phase.control_type,
                 ctrl_range,
                 phase_defect,
                 phase.dynamics_type,
+                phase.model_params,
             ]
             ctrl_idx = len(d0)
 
@@ -237,42 +228,62 @@ class MultiShootingTranscription:
         return d0, d0_bounds, normalization_vec, phase_configs_tuple
 
 
-    def unpack_decision_var(self,decision_var, config):
-        """Converts the decision 
+#    def unpack_decision_var(self,decision_var, config):
+#        """Converts the decision 
+#
+#        Args:
+#            decision_var : Optimzation decission vector
+#            config : Config for this phase
+#        Returns:
+#            tuple: control, state, terminal time, control_law
+#
+#        """
+#        control_law = config[0]
+#        ctrl_idx_range = list(config[1])
+#        u = decision_var[range(*config[1])]
+#        x = decision_var[ctrl_idx_range[-1]: ctrl_idx_range[-1]+self.num_states]
+#        t_terminal = decision_var[ctrl_idx_range[-1]+self.num_states]
+#
+#        return (u, x, t_terminal, control_law)
+#
+#    def full_traj_rollout(self, decision_var, config_list)->list[OdeResult]:
+#        """Rolls out all the trajectory segments. Each segment is rolled out in parallel using ThreadPoolExecutor.
+#        Args:
+#            decision_var : Optimzation decission vector
+#            config_list : Configs for each phase
+#    
+#        Returns:
+#            list of ode solutions for each segment
+#        """
+#        def process_phase(config):
+#            model_params = config[-1]
+#            dyn_type = config[-2]
+#
+#            u, x, t_terminal, control_law = self.unpack_decision_var(decision_var, config)
+#            # make inputs hashable, needed for lru cache, the copy is cheaper than a second f(x) eval
+#            u_ = tuple(u.tolist())
+#            x_ = tuple(x.tolist())
+#            t_ = float(t_terminal)
+#            vch_params = (dyn_type, model_params, (control_law, u_))
+#            return traj_rollout(t_, x_, vch_params)
+#
+#        with ThreadPoolExecutor() as executor:
+#            sol_list = list(executor.map(process_phase, config_list))
+#        return sol_list
+#
+#    def dynamics_knot_constrant(self, decision_var, config_list):
+#        """Calculate the defect between phase knot points."""
+#        d0 = denormalize_decision_vec(decision_var, normalization_vec)
+#        defect_vector_list = []
+#        sol_list = self.full_traj_rollout(d0, config_list)
+#        for idx in range(1, self.num_phases):
+#            _, _, knot_defect, _, _ = config_list[idx]
+#            defect_sub_vector = sol_list[idx].y[:, 0] - sol_list[idx - 1].y[:, -1] + knot_defect
+#            defect_sub_vector /= np.array([100000, 100000, 8000, 5000, 1000])
+#            defect_vector_list.append(defect_sub_vector)
+#        terminal_state = d0[-self.num_terminal_states:]
+#        terminal_defect = terminal_state - sol_list[-1].y[:, -1]
+#        terminal_defect /= np.array([10000, 10000, 8000, 5000, 1000])
+#        defect_vector_list.append(terminal_defect)
+#        return np.array(defect_vector_list).flatten()
 
-        Args:
-            decision_var : Optimzation decission vector
-            config : Config for this phase
-        Returns:
-            tuple: control, state, terminal time, control_law
-
-        """
-        control_law = config[0]
-        ctrl_idx_range = list(config[1])
-        u = decision_var[range(*config[1])]
-        x = decision_var[ctrl_idx_range[-1]: ctrl_idx_range[-1]+self.num_states]
-        t_terminal = decision_var[ctrl_idx_range[-1]+self.num_states]
-
-        return (u, x, t_terminal, control_law)
-
-    def full_traj_rollout(self, decision_var, config_list)->list[OdeResult]:
-        """Rolls out all the trajectory segments. Each segment is rolled out in parallel using ThreadPoolExecutor.
-        Args:
-            decision_var : Optimzation decission vector
-            config_list : Configs for each phase
-    
-        Returns:
-            list of ode solutions for each segment
-        """
-        def process_phase(config):
-            u, x, t_terminal, control_law = self.unpack_decision_var(decision_var, config)
-            # make inputs hashable, needed for lru cache, the copy is cheaper than a second f(x) eval
-            u_ = tuple(u.tolist())
-            x_ = tuple(x.tolist())
-            t_ = float(t_terminal)
-            vch_params = (config[3], (control_law, u_))
-            return traj_rollout(t_, x_, vch_params)
-
-        with ThreadPoolExecutor() as executor:
-            sol_list = list(executor.map(process_phase, config_list))
-        return sol_list

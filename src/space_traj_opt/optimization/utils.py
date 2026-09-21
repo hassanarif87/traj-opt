@@ -19,13 +19,17 @@ def traj_rollout(t_terminal:float, x0: np.array, params: tuple) -> OdeResult:
     Returns:
         OdeResult: The solution of the phase
     """
+    dyn_type, model_params , control_params = params
+    dyn_func = dynamics(dyn_type)
+
+    ode_params = (model_params , control_params)
 
     t_sol, y_sol = integrate(
-        dynamics, 
+        dyn_func, 
         t_span=[0.0, t_terminal], 
         t_eval= np.linspace(0.0, t_terminal,50),
         y0=x0,    
-        args=(params,)
+        args=(ode_params,)
     )
     return OdeResult(t_sol, y_sol)  
 
