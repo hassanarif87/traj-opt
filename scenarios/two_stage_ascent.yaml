@@ -1,0 +1,88 @@
+name: two_stage_ascent
+num_states: 5
+state_headers: [x, y, vx, vy, m]
+output_name: traj_opt_sol
+
+phases:
+  - name: phase0
+    dynamics: DYNAMICS_2D
+    control: ANGLE_STEER
+    model_params: [224190.36, 311.0]
+    state:
+      guess: [0.0, 0.0, 0.0, 0.0, 12949.537]
+      bounds: [0.0, 0.0, 0.0, 0.0, 12949.537]
+      normalize: [200000.0, 200000.0, 5000.0, 1000.0, 5000.0]
+    controller:
+      guess: [89.5]
+      bounds: [[85.0, 89.8]]
+      normalize: [3.141592653589793]
+      angle_unit: deg
+    time:
+      guess: 10.0
+      bounds: 10.0
+
+  - name: phase1
+    dynamics: DYNAMICS_2D
+    control: ZERO_ALPHA
+    model_params: [224190.36, 311.0]
+    state:
+      guess: [7.5, 390.0, 1.5, 80.0, 12200.0]
+      bounds: [[0.0, null], [0.0, null], [0.0, null], [0.0, null], [100.0, null]]
+      normalize: [200000.0, 200000.0, 5000.0, 1000.0, 5000.0]
+    controller:
+      guess: []
+      bounds: []
+      normalize: []
+    time:
+      guess: 100.0
+      bounds: [60.0, 180.0]
+
+  - name: phase2
+    dynamics: DYNAMICS_2D
+    control: LTS
+    model_params: [25000.0, 343.0]
+    state:
+      guess: [30000.0, 60000.0, 2000.0, 500.0, 2902.454913676189]
+      bounds: [[0.0, null], [0.0, null], [0.0, null], [0.0, null], [2902.454913676189, 2902.454913676189]]
+      normalize: [200000.0, 200000.0, 5000.0, 1000.0, 5000.0]
+    controller:
+      guess: [-0.001, 1.0]
+      bounds: [[-0.1, 0.1], [-3.0, 3.0]]
+      normalize: [0.1, 1.5707963267948966]
+    time:
+      guess: 22.0
+      bounds: 22.0
+
+  - name: phase3
+    dynamics: DYNAMICS_2D
+    control: LTS
+    model_params: [25000.0, 343.0]
+    state:
+      guess: [45000.0, 80000.0, 2800.0, 1000.0, 2688.94357]
+      normalize: [200000.0, 200000.0, 5000.0, 1000.0, 5000.0]
+    controller:
+      guess: [-0.001, 1.0]
+      bounds: [[-0.1, 0.1], [-3.0, 3.0]]
+      normalize: [0.1, 1.5707963267948966]
+    time:
+      guess: 320.0
+
+defects:
+  - name: stage_1_separation
+    phases: [phase1, phase2]
+    values: [0.0, 0.0, 0.0, 0.0, 1076.47308279]
+    normalize: [100000.0, 100000.0, 8000.0, 5000.0, 1000.0]
+  - name: fairing_separation
+    phases: [phase2, phase3]
+    values: [0.0, 0.0, 0.0, 0.0, 50.0]
+    normalize: [100000.0, 100000.0, 8000.0, 5000.0, 1000.0]
+
+terminal:
+  final: [1000000.0, 200000.0, 7784.342809549733, 0.0, 507.900937]
+  bounds: [null, 200000.0, 7784.342809549733, 0.0, null]
+  normalize: [200000.0, 200000.0, 5000.0, 1000.0, 5000.0]
+
+solver:
+  method: SLSQP
+  maxiter: 500
+  display: true

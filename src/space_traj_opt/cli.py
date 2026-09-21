@@ -2,10 +2,14 @@ import argparse
 from pathlib import Path
 
 from space_traj_opt.reports.generate_report import generate_report
+from space_traj_opt.sims.scenario import run_scenario_file
 
 
 def handle_run(args):
     print(f"Running simulation for: {args.scenario}")
+    result = run_scenario_file(args.scenario)
+    print(f"Success: {result.success}")
+    print(f"Message: {result.message}")
 
 def handle_report(args):
     print(f"Generating report for: {args.scenario}")
