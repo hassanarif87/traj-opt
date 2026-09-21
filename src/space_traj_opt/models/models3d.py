@@ -18,9 +18,8 @@ def dynamics(t: float, x: npt.ArrayLike, params) -> npt.ArrayLike:
     """
 
     u = control(t, x, params[1])
-    thrust, Isp = params[0]
 
-    return dynamics_plant(t, x, u, (thrust, Isp))
+    return dynamics_plant(t, x, u, params[0])
 
 
 @numba.njit
@@ -62,11 +61,12 @@ def dynamics_plant(
 
     # Drag
     if toggle_aero and v_mag > 1e-5:
-        lla = eci2lla(eci, t)
-        speed_of_sound, rho = get_atm(lla[2])
-        CdA, CdN = S_ref * get_drag_coeff(v_mag / speed_of_sound)
-        axis_mag = 0.5 * rho * CdA[0] * v_mag**2
-        normal_mag = 0.5 * rho * CdN[1] * v_mag**2
+        # lla = eci2lla(eci, t)
+        # speed_of_sound, rho = get_atm(lla[2])
+        # CdA, CdN = S_ref * get_drag_coeff(v_mag / speed_of_sound)
+        # axis_mag = 0.5 * rho * CdA[0] * v_mag**2
+        # normal_mag = 0.5 * rho * CdN[1] * v_mag**2
+        print("none")
         
     else:
         aero_forces = np.zeros(3)
