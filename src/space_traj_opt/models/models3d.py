@@ -66,7 +66,7 @@ def dynamics_plant(
         # CdA, CdN = S_ref * get_drag_coeff(v_mag / speed_of_sound)
         # axis_mag = 0.5 * rho * CdA[0] * v_mag**2
         # normal_mag = 0.5 * rho * CdN[1] * v_mag**2
-        print("none")
+        print("Aero Not Implemented")
         
     else:
         aero_forces = np.zeros(3)
