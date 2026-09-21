@@ -12,7 +12,7 @@ from space_traj_opt.optimization.utils import denormalize_decision_vec, traj_rol
 @dataclass
 class Problem:
     d0_guess_normalized: ArrayLike
-    d0_bound_norm: ArrayLike
+    d_bounds_norm: ArrayLike
     normalization_vec: ArrayLike
     num_states: int
     num_terminal_states: int

@@ -109,8 +109,9 @@ class TerminalConditions:
     bounds: tuple
     norm_vec: npt.ArrayLike
 
+    @classmethod
     def set_terminal(
-        self, 
+        cls, 
         x_final: npt.ArrayLike, 
         bounds: tuple | npt.ArrayLike | None = None,         
         norm_vec: None | npt.ArrayLike |list= None,
@@ -135,9 +136,7 @@ class TerminalConditions:
         )
         ```
         """
-        # Store the terminal state
-        self.terminal_state = x_final
-        self.terminal_normvec = norm_vec
+
         # Set bounds if not provided
         if bounds is None:
             bounds = [(None, None) for _ in x_final]
@@ -154,5 +153,8 @@ class TerminalConditions:
             x_final
         ), "Bounds must match the size of the terminal state."
 
-        # Store the bounds
-        self.terminal_bounds = bounds_out
+        return cls(
+            x_final,
+            bounds_out,
+            norm_vec
+        )
