@@ -6,6 +6,7 @@ import numpy as np
 from numpy.typing import ArrayLike
 
 from space_traj_opt.math.integrator import OdeResult
+from space_traj_opt.optimization.constraints import ConstraintType, terminal_constraint
 from space_traj_opt.optimization.utils import denormalize_decision_vec, traj_rollout
 
 
@@ -14,6 +15,7 @@ class Problem:
     d0_guess_normalized: ArrayLike
     d_bounds_norm: ArrayLike
     normalization_vec: ArrayLike
+    terminal_con_kind: ConstraintType
     num_states: int
     num_terminal_states: int
     num_phases: int
@@ -72,9 +74,15 @@ class Problem:
             defect_sub_vector = sol_list[idx].y[:, 0] - sol_list[idx - 1].y[:, -1] + knot_defect
             defect_sub_vector /= np.array([100000, 100000, 8000, 5000, 1000])
             defect_vector_list.append(defect_sub_vector)
-        terminal_state = d0[-self.num_terminal_states:]
-        terminal_defect = terminal_state - sol_list[-1].y[:, -1]
-        terminal_defect /= np.array([10000, 10000, 8000, 5000, 1000])
+
+
+        terminal_defect = terminal_constraint(
+            self.terminal_con_kind, 
+            d0, 
+            sol_list[-1], 
+            self.num_terminal_states 
+            )
+        
         defect_vector_list.append(terminal_defect)
         return np.array(defect_vector_list).flatten()
 

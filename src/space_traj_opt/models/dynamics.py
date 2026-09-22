@@ -1,8 +1,7 @@
-from space_traj_opt.models.models3d import dynamics as dynamics3d
-from space_traj_opt.models.models import dynamics as dynamics2d
 import enum
 
-
+from space_traj_opt.models.models import dynamics as dynamics2d
+from space_traj_opt.models.models3d import dynamics as dynamics3d
 
 
 class DynEnum(enum.Enum):
@@ -26,6 +25,6 @@ def dynamics(dyn_type: DynEnum):
         case DynEnum.DYNAMICS_3D:
             func = dynamics3d
         case _:
-            raise("Dyamics mode not defined")
+            raise print("Dynamics mode not defined")
 
     return func

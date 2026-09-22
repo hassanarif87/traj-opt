@@ -6,6 +6,7 @@ from numpy import deg2rad as d2r
 from scipy.optimize import minimize
 
 from space_traj_opt.models.models import CtrlMode
+from space_traj_opt.optimization.constraints import ConstraintType
 from space_traj_opt.optimization.phases import (
     DynEnum,
     Phase,
@@ -125,8 +126,9 @@ def build_scenario(config: ScenarioConfig) -> BuiltScenario:
         d0_norm,
         d_bounds_norm,
         normalization_vec,
+        ConstraintType[terminal.kind.name],
         config.num_states,
-        config.num_states,
+        len(terminal.final),
         len(config.phases),
     )
     return BuiltScenario(problem, full_params, normalization_vec, config.num_states)

@@ -1,8 +1,14 @@
+from enum import Enum
 from pathlib import Path
 from typing import Any
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field
+
+
+class TerminalKind(str, Enum):
+    ON_STATE = "ON_STATE"
+    ON_ORBIT = "ON_ORBIT"
 
 
 class StateConfig(BaseModel):
@@ -56,6 +62,7 @@ class TerminalConfig(BaseModel):
     final: list[float]
     bounds: Any = None
     normalize: list[float] | None = None
+    kind: TerminalKind = TerminalKind.ON_STATE
 
 
 class SolverConfig(BaseModel):
