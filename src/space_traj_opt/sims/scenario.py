@@ -5,7 +5,9 @@ import numpy as np
 from numpy import deg2rad as d2r
 from scipy.optimize import minimize
 
-from space_traj_opt.models.models import CtrlMode
+from space_traj_opt.models.models import CtrlMode as CtrlMode2D
+from space_traj_opt.models.controller3d import CtrlMode as CtrlMode3D
+
 from space_traj_opt.optimization.constraints import ConstraintType
 from space_traj_opt.optimization.phases import (
     DynEnum,
@@ -59,7 +61,11 @@ def _convert_angles(values: list[float], unit: str) -> np.ndarray:
 
 def _build_phase(config: PhaseConfig) -> Phase:
     dynamics = _enum_value(DynEnum, config.dynamics)
-    control = _enum_value(CtrlMode, config.control)
+    if dynamics == DynEnum.DYNAMICS_2D:
+        control = _enum_value(CtrlMode2D, config.control)
+    elif dynamics == DynEnum.DYNAMICS_3D:
+        control = _enum_value(CtrlMode3D, config.control)
+
     phase = Phase(config.name, dynamics, control, tuple(config.model_params))
 
     state_guess = np.asarray(config.state.guess, dtype=float)
