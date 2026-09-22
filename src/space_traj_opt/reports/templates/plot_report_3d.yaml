@@ -1,0 +1,18 @@
+figures:
+  - name: Position
+    xdata: time
+    ydata:
+      - rx
+      - ry
+      - rz
+
+  - name: Velocity
+    xdata: time
+    ydata:
+      - vx
+      - vy
+      - vz
+  - name: Mass
+    xdata: time
+    ydata:
+      - m
