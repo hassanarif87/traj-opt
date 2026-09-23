@@ -46,14 +46,24 @@ jobs:
 
       - name: Prepare GitHub Pages site
         run: |
-          mkdir -p _site
-          cp output/two_stage_ascent.html _site/index.html
+          mkdir -p site
+          cp README.md site/index.md
+          cp output/two_stage_ascent.html site/two_stage_ascent.html
+
+      - name: Build GitHub Pages site
+        uses: actions/jekyll-build-pages@v1
+        with:
+          source: site
+          destination: _site
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
+          name: github-pages-${{ github.run_attempt }}
           path: _site
 
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+        with:
+          artifact_name: github-pages-${{ github.run_attempt }}
