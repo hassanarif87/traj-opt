@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from space_traj_opt.models import (
+from space_traj_opt.models.models import (
     dynamics,
     dynamics_plant,
     get_drag_coeff,

@@ -15,3 +15,5 @@ dist/
 */**/scratch_*
 
 **/output/*
+
+.coverage

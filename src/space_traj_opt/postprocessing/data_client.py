@@ -16,8 +16,8 @@ class CSVClient:
         Args:
             sim_output (str): Name of the simulation output, used to construct the CSV file path.
         """ 
-        self.out = OUT_DIR / (sim_output + ".csv")
-        self.name = self.out.stem 
+        self.out : Path = OUT_DIR / (sim_output + ".csv")
+        self.name : str  = self.out.stem 
         self.df = pd.read_csv(self.out)
 
     def get_channels(self, channels: str | list[str]):
@@ -30,7 +30,7 @@ class CSVClient:
             Channel name or list of channel names. Each name must
             exactly match a column in the CSV file.
         """
-        channels = extract_parameterized_string(channels)
+        channels : list[str] = extract_parameterized_string(channels)
 
         for channel in channels:
             if channel not in self.df.columns:

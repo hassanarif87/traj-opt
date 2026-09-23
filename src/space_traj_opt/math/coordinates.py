@@ -40,6 +40,20 @@ def ecef2eci(r_ecef, t):
     ])
     return r_eci
 
+def v_ecef2eci(v_ecef, r_eci, t):
+    """Convert from ECEF to ECI velocity
+
+    Args:
+        v_ecef : velocity vector in ECEF frame
+        r_eci : position vector in ECI frame
+        t : time in seconds since epoch sim t =0
+    Returns:
+        v_eci : velocity vector in ECI frame
+    """     
+    omega_earth = np.array([0, 0, OMEGA_EARTH])
+    v_eci = ecef2eci(v_ecef, t) + np.cross(omega_earth, r_eci)
+    return v_eci
+
 def ecef2lla(r_ecef):
     """Convert from ECEF to Latitude, Longitude, Altitude
 
@@ -179,13 +193,13 @@ def quat_ned2eci(t, x):
 
 
 def dcm_rsw2eci(r_vec, v_vec):
-    """Get the quaternion representing the rotation from RSW to ECI frame given position and velocity vectors
+    """Get the rotation matrix representing the rotation from RSW to ECI frame given position and velocity vectors
 
     Args:
         r_vec : position vector in ECI frame
         v_vec : velocity vector in ECI frame
     Returns:
-        q_rsw2eci : quaternion representing rotation from RSW to ECI frame
+        dcm_rsw2eci : 3x3 rotation matrix from RSW to ECI frame
     """     
     # Radial unit vector
     r_hat = r_vec / np.linalg.norm(r_vec)
