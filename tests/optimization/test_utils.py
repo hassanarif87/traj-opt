@@ -37,13 +37,13 @@ def test_denormalize_decision_vec():
 
 
 def test_traj_rollout():
-    t_terminal = 1.0
-    x0 = (0.0, 0.0, 0.0, 0.0, 10000.0)
+    t_terminal = 1000.0
+    x0 = (0.0, 0.0, 0.0, 0.0, 1000.0)
     params = (DynEnum.DYNAMICS_2D, (1000.0, 100.0), (CtrlMode.ANGLE_STEER, (0.5,)))
 
     solution = traj_rollout(t_terminal, tuple(x0), params)
-
-    assert solution.t.shape == (50,)
+    print(solution.t.shape)
+    assert solution.t.shape == (50,) 
     assert solution.y.shape == (5, 50)
     np.testing.assert_allclose(solution.t, np.linspace(0.0, t_terminal, 50))
     np.testing.assert_allclose(solution.y[:, 0], x0)

@@ -1,9 +1,11 @@
+from typing import NamedTuple
+
 import numpy as np
 
-class OdeResult:
-    def __init__(self,t,  y):
-        self.y = y
-        self.t = t
+
+class OdeResult(NamedTuple):
+        t: float
+        y: float
 
 
 def integrate(fun, t_span, y0, t_eval=None, args=()):

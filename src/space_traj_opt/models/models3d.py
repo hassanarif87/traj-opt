@@ -5,6 +5,7 @@ import numpy.typing as npt
 from space_traj_opt.math.constants import MU_EARTH, STANDARD_GRAV
 from space_traj_opt.models.controller3d import control
 
+
 def dynamics(t: float, x: npt.ArrayLike, params) -> npt.ArrayLike:
     """Full system dynamics
 
@@ -22,7 +23,7 @@ def dynamics(t: float, x: npt.ArrayLike, params) -> npt.ArrayLike:
     return dynamics_plant(t, x, u, params[0])
 
 
-@numba.njit
+#@numba.njit
 def dynamics_plant(
     t: float, x: npt.ArrayLike, u: npt.ArrayLike, params: tuple
 ) -> npt.ArrayLike:

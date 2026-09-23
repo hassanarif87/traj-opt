@@ -27,9 +27,6 @@ dev = [
 	"snakeviz>=2.2.2,<3.0.0",
 ]
 
-[tool.pytest.ini_options]
-addopts = "--cov=space_traj_opt --cov-report=term-missing"
-
 [tool.setuptools]
 package-dir = {"" = "src"}
 
