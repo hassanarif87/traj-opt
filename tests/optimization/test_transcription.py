@@ -24,7 +24,7 @@ def test_repr_uses_dataclass_representations():
 def test_build_uses_registered_phase_data():
     phase = Phase("phase0", DynEnum.DYNAMICS_2D, CtrlMode.ANGLE_STEER, ())
     phase.set_controller(CtrlMode.ANGLE_STEER, np.array([1.0, 2.0]), [(0.0, 3.0)] * 2, [1.0] * 2)
-    phase.set_state(DynEnum.DYNAMICS_2D, np.array([3.0, 4.0]), [(0.0, 5.0)] * 2, [1.0] * 2)
+    phase.set_state(np.array([3.0, 4.0]), [(0.0, 5.0)] * 2, [1.0] * 2)
     phase.set_time(5.0, (1.0, 10.0))
     problem = MultiShootingTranscription(["phase0"], num_states=2)
     problem.add_phase("phase0", phase)

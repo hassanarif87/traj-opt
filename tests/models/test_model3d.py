@@ -11,7 +11,7 @@ from space_traj_opt.reports.orbit_plot import EARTH_RADIUS
 def test_dynamics():
     t = 0.0
     x = np.array([0.0, 0.0, 0.0, 0.0, 10000.0])
-    params = ((1000.0, 100.0), (CtrlMode.ANGLE_STEER, (0.5,)))
+    params = ((1000.0, 100.0), (CtrlMode.ANGLE_STEER, (0.5,)), False)
     
     res_dx = dynamics(t, x, params)
     assert len(res_dx) == 5
@@ -22,7 +22,7 @@ def test_dynamics_plant():
     t = 0.0
     x = np.array([EARTH_RADIUS, 0.0, 0.0, 1000, 10.0, 0.0, 10000.0])
     u = np.array([100,0,0])
-    params = (1000.0, 100.0)
+    params = (1000.0, 100.0, False)
     
     res_dx = dynamics_plant(t, x, u, params)
     assert len(res_dx) == 7
