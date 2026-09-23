@@ -81,7 +81,6 @@ class ScenarioConfig(BaseModel):
     phases: list[PhaseConfig] = Field(min_length=1)
     defects: list[DefectConfig] = []
     terminal: TerminalConfig
-    output_name: str = "traj_opt_sol"
     state_headers: list[str]
     solver: SolverConfig = SolverConfig()
 
@@ -92,5 +91,5 @@ def load_config(path: str | Path) -> ScenarioConfig:
     with config_path.open(encoding="utf-8") as config_file:
         data = yaml.safe_load(config_file)
     if not isinstance(data, dict):
-        raise ValueError("Scenario YAML must contain a top-level mapping")
+        raise TypeError("Scenario YAML must contain a top-level mapping")
     return ScenarioConfig.model_validate(data)

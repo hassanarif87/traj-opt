@@ -1,7 +1,6 @@
 name: two_stage_ascent
 num_states: 5
 state_headers: [x, y, vx, vy, m]
-output_name: traj_opt_sol
 
 phases:
   - name: phase0

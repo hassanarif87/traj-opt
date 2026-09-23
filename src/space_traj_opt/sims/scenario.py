@@ -161,7 +161,7 @@ def run_scenario(config: ScenarioConfig):
     )
     x_opt = denormalize_decision_vec(result.x, built.normalization_vec)
     sol_list = built.problem.full_traj_rollout(x_opt, built.full_params)
-    sol_to_csv(sol_list, config.state_headers, config.output_name)
+    sol_to_csv(sol_list, config.state_headers, config.name)
     return result
 
 
