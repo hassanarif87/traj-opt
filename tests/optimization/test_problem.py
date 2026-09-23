@@ -2,6 +2,7 @@ import numpy as np
 
 from space_traj_opt.models.models import CtrlMode
 from space_traj_opt.optimization.phases import DynEnum, Phase, TerminalConditions
+from space_traj_opt.optimization.constraints import ConstraintType
 from space_traj_opt.optimization.problem import Problem
 from space_traj_opt.optimization.transcription import MultiShootingTranscription
 from space_traj_opt.optimization.utils import normalize_decision_vec
@@ -15,7 +16,7 @@ def test_unpack_decision_var():
         model_params=(),
     )
     phase.set_controller(CtrlMode.ANGLE_STEER, np.array([1.0, 2.0]), [(0.0, 3.0)] * 2, [1.0] * 2)
-    phase.set_state(DynEnum.DYNAMICS_2D, np.array([3.0, 4.0]), [(0.0, 5.0)] * 2, [1.0] * 2)
+    phase.set_state(np.array([3.0, 4.0]), [(0.0, 5.0)] * 2, [1.0] * 2)
     phase.set_time(5.0, (1.0, 10.0))
 
     builder = MultiShootingTranscription(["phase0"], num_states=2)
@@ -29,9 +30,11 @@ def test_unpack_decision_var():
         decision_var_norm,
         bounds_norm,
         normalization_vec,
+        terminal_con_kind = ConstraintType.ON_STATE,
         num_states=2,
         num_terminal_states=2,
         num_phases=1,
+
     )
 
     u, x, t_terminal, control_law = problem.unpack_decision_var(decision_var, configs[0])
