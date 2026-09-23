@@ -17,7 +17,7 @@ def terminal_constraint(kind: ConstraintType, decision_var, sol, num_state):
     Args:
         t : time
         x : Vehicle state
-        params : Tuple of parameters containing the control type and control law parameters
+        num_state : Number of terminal states
     Returns:
         dx
     """
@@ -42,10 +42,11 @@ def terminal_constraint_on_orbit(decision_var, sol, num_state):
     a_desired, e_desired, v_circ, m_desired = decision_var[-num_state:]
     e_scale = 1.0
 
-    r = sol.y[:,-1][:3]
+    r = sol.y[:,-1][0:3]
     v = sol.y[:,-1][3:6]
     m = sol.y[:,-1][6]
     a, e, _ = rv_to_aei(r, v, MU_EARTH)
+    print(a, e)
     v_mag = np.linalg.norm(v)
     terminal_defect = np.array([
         (a   - a_desired) / SMA_EARTH,

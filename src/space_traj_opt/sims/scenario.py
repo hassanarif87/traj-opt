@@ -5,9 +5,8 @@ import numpy as np
 from numpy import deg2rad as d2r
 from scipy.optimize import minimize
 
-from space_traj_opt.models.models import CtrlMode as CtrlMode2D
 from space_traj_opt.models.controller3d import CtrlMode as CtrlMode3D
-
+from space_traj_opt.models.models import CtrlMode as CtrlMode2D
 from space_traj_opt.optimization.constraints import ConstraintType
 from space_traj_opt.optimization.phases import (
     DynEnum,
@@ -168,3 +167,6 @@ def run_scenario(config: ScenarioConfig):
 
 def run_scenario_file(path: str | Path):
     return run_scenario(load_config(path))
+
+if __name__ == "__main__":
+    run_scenario_file("scenarios/second_stage_ascent.yaml")

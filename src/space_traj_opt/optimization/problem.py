@@ -64,8 +64,18 @@ class Problem:
             sol_list = list(executor.map(process_phase, config_list))
         return sol_list
 
-    def dynamics_knot_constrant(self, decision_var, config_list):
-        """Calculate the defect between phase knot points."""
+    def dynamics_knot_constrant(self, decision_var, config_list) -> np.ndarray:
+        """Integrate the dynamics of each segment. Calcculate the defect  between the knot points.
+        This vector is used as the equality constraint for the optimization problem.
+        The defect is calculated as the difference between the final state of the previous segment and the initial state of the next segment.
+
+        Args:
+            decision_var : Optimzation decision vector
+            config_list : List of configs for each phase
+
+        Returns:
+            Knot defect vector
+        """
         d0 = denormalize_decision_vec(decision_var, self.normalization_vec)
         defect_vector_list = []
         sol_list = self.full_traj_rollout(d0, config_list)
@@ -87,12 +97,11 @@ class Problem:
         return np.array(defect_vector_list).flatten()
 
     @staticmethod
-    def objective(decision_var: tuple, params: tuple) -> float:
+    def objective(decision_var: tuple, _params: tuple) -> float:
         """Objective function for min prop
 
         Args:
             decision_var : Optimization problem decision vector
-            params : 
 
         Returns:
             Cost to minimize
@@ -101,7 +110,7 @@ class Problem:
         return -terminal_mass*terminal_mass*10000
 
     @staticmethod
-    def jac_objective(decision_var: tuple, params: tuple):
+    def jac_objective(decision_var: tuple, _params: tuple):
         """Jac of the decision vector wrt the cost."""
         
         jac = np.zeros_like(decision_var)
