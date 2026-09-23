@@ -33,7 +33,27 @@ def test_dynamics_plant():
     
     res_dx = dynamics_plant(t, x, u, params)
     assert len(res_dx) == 7
-    np.testing.assert_allclose(res_dx, np.array([ 0., 0., 0.08775826, -9.75870745, -1.01971621]))
+
+    # Hand calculation:
+    #   dr/dt = v = [1000, 10, 0] m/s
+    #   g_x = -MU_EARTH / EARTH_RADIUS**2 = -9.798285479187 m/s^2
+    #   thrust_x / m = (1000 N * 100) / 10000 kg = 10 m/s^2
+    #   a_x = g_x + thrust_x / m = 0.201714520813 m/s^2
+    #   mdot = -thrust / (STANDARD_GRAV * Isp)
+    #        = -1000 / (9.80665 * 100) = -1.019716212978 kg/s
+    np.testing.assert_allclose(
+        res_dx,
+        np.array([
+            1000.0,
+            10.0,
+            0.0,
+            0.201714520813,
+            0.0,
+            0.0,
+            -1.019716212978,
+        ]),
+        atol=1e-12,
+    )
 
 # Run the tests
 if __name__ == "__main__":
