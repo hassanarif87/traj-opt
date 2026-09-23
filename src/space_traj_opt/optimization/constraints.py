@@ -46,7 +46,6 @@ def terminal_constraint_on_orbit(decision_var, sol, num_state):
     v = sol.y[:,-1][3:6]
     m = sol.y[:,-1][6]
     a, e, _ = rv_to_aei(r, v, MU_EARTH)
-    print(a, e)
     v_mag = np.linalg.norm(v)
     terminal_defect = np.array([
         (a   - a_desired) / SMA_EARTH,
