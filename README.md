@@ -16,7 +16,7 @@ Generate an HTML report from the resulting trajectory:
 uv run topt report --scenario two_stage_ascent --output two_stage_ascent
 ```
 
-View the [example two-stage ascent report](https://hassanarif87.github.io/traj-opt/).
+View the [example two-stage ascent report](two_stage_ascent.html).
 
 # Transcriptions Methods
 ## MultiShootingTranscription
