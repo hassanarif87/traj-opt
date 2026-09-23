@@ -1,9 +1,13 @@
+from pathlib import Path
+
 from space_traj_opt import OUT_DIR
 from space_traj_opt.postprocessing.data_client import CSVClient
 from space_traj_opt.postprocessing.template_plotter import TemplatePlotter
 
 
-def generate_report(sim_name: str | list[str], output: str | None = None) -> None:
+def generate_report(
+    sim_name: str | list[str], output: str | Path | None = None
+) -> None:
 
     """Generate a report for the given simulation(s).
     Args:
@@ -17,4 +21,5 @@ def generate_report(sim_name: str | list[str], output: str | None = None) -> Non
 
     if output is None:
         output = "report"
-    TemplatePlotter("plot_report", clients).plot(OUT_DIR /  (output + ".html"))
+    output_path = OUT_DIR / f"{output}.html"
+    TemplatePlotter("plot_report", clients).plot(output_path)
