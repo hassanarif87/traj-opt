@@ -20,7 +20,7 @@ from space_traj_opt.optimization.utils import (
     denormalize_decision_vec,
     normalize_decision_vec,
 )
-from space_traj_opt.postprocessing.post_proccess import sol_to_csv
+from space_traj_opt.postprocessing.post_proccess import problem_results, sol_to_csv
 from space_traj_opt.sims.config import PhaseConfig, ScenarioConfig, load_config
 
 
@@ -162,6 +162,7 @@ def run_scenario(config: ScenarioConfig):
     x_opt = denormalize_decision_vec(result.x, built.normalization_vec)
     sol_list = built.problem.full_traj_rollout(x_opt, built.full_params)
     sol_to_csv(sol_list, config.state_headers, config.name)
+    problem_results(x_opt, built.problem, config.name, result=result)
     return result
 
 
