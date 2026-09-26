@@ -22,6 +22,15 @@ def test_flight_path_angle_for_oblique_velocity_vector():
     assert np.isclose(gamma, np.arctan2(3.0, 4.0))
 
 
+def test_flight_path_angle_vectorizes_over_vectors():
+    r_vec = np.array([[1.0, 0.0, 0.0], [0.0, 2.0, 0.0]])
+    v_vec = np.array([[3.0, 4.0, 0.0], [0.0, 3.0, 4.0]])
+
+    gamma = flight_path_angle(r_vec, v_vec)
+
+    np.testing.assert_allclose(gamma, [np.arctan2(3.0, 4.0)] * 2)
+
+
 def test_dir_from_pitch_yaw_matches_expected_rsw_vector():
     pitch = 0.3
     yaw = -0.7
