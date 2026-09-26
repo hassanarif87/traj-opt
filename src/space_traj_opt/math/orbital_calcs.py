@@ -1,6 +1,9 @@
 import numpy as np
 
-def rv_to_orbital_elements(r_vec, v_vec, mu):
+from space_traj_opt.math.constants import MU_EARTH
+
+
+def rv_to_orbital_elements(r_vec, v_vec, mu = MU_EARTH):
     """
     Convert position and velocity vectors to classical orbital elements.
 
@@ -80,7 +83,7 @@ def rv_to_orbital_elements(r_vec, v_vec, mu):
     return a, e, i, raan, argp, nu
 
 
-def rv_to_aei(r_vec, v_vec, mu):
+def rv_to_aei(r_vec, v_vec, mu=MU_EARTH):
     """
     Convert position and velocity vectors to classical orbital elements.
 
