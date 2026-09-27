@@ -3,9 +3,8 @@ from dataclasses import dataclass
 import numpy as np
 import numpy.typing as npt
 
-from space_traj_opt.models.dynamics import DynEnum
-from space_traj_opt.models.models import CtrlMode
 from space_traj_opt.models.controller3d import CtrlMode
+from space_traj_opt.models.dynamics import DynEnum
 
 
 @dataclass

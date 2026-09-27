@@ -83,7 +83,7 @@ def process_phase(
     )
 
 
-def process_trajectory(
+def process_3dtrajectory(
     trajectory_df: pd.DataFrame,
     d_opt: np.ndarray,
     config: ScenarioConfig,
@@ -112,14 +112,14 @@ def process_trajectory(
     return results
 
 
-def process_file(sim_output: str, config_path: str) -> pd.DataFrame:
+def postprocess_trajectory(sim_output: str, config_path: str) -> pd.DataFrame:
     """Load, process, and rewrite a scenario's trajectory CSV."""
     client = CSVClient(sim_output)
     if client.metadata is None or "x_opt" not in client.metadata:
         raise ValueError(f"Optimization metadata with x_opt is required for {sim_output!r}.")
 
     config = load_config(config_path)
-    client.df = process_trajectory(
+    client.df = process_3dtrajectory(
         client.df,
         np.asarray(client.metadata["x_opt"]),
         config,
@@ -129,5 +129,5 @@ def process_file(sim_output: str, config_path: str) -> pd.DataFrame:
 
 
 if __name__ == "__main__":
-    process_file("second_stage_ascent", "scenarios/second_stage_ascent.yaml")
+    postprocess_trajectory("second_stage_ascent", "scenarios/second_stage_ascent.yaml")
 
