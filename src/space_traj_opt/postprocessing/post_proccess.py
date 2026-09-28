@@ -7,7 +7,6 @@ from space_traj_opt.postprocessing.data_client import CSVClient
 from space_traj_opt.postprocessing.pp_functions import process_3dtrajectory
 from space_traj_opt.sims.config import ScenarioConfig, load_config
 
-
 POSTPROCESSORS = {
     "process_3dtrajectory": process_3dtrajectory,
 }

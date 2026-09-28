@@ -7,12 +7,11 @@ from scipy.integrate import OdeSolution
 import numpy as np
 
 from space_traj_opt.optimization.problem import Problem
-from space_traj_opt.postprocessing import post_proccess
-from space_traj_opt.postprocessing.utils import unpack_sol_list
+from space_traj_opt.postprocessing import utils
 
 
-def test_problem_results_writes_json(tmp_path, monkeypatch):
-    monkeypatch.setattr(post_proccess, "OUT_DIR", tmp_path)
+def test_save_metadata_writes_json(tmp_path, monkeypatch):
+    monkeypatch.setattr(utils, "OUT_DIR", tmp_path)
     problem = Problem(
         d0_guess_normalized=np.array([0.25]),
         d_bounds_norm=np.array([[0.0, 1.0]]),
@@ -31,7 +30,9 @@ def test_problem_results_writes_json(tmp_path, monkeypatch):
         x=np.array([0.5]),
     )
 
-    data = post_proccess.problem_results(np.array([0.5]), problem, "scenario_output", result=result)
+    data = utils.save_metadata(
+        np.array([0.5]), problem, "scenario_output", result=result
+    )
 
     assert data["x_opt"] == [0.5]
     assert data["num_states"] == 1
@@ -63,7 +64,7 @@ def test_unpack_sol_list():
 
     sol_list_in = [sol1, sol2]
 
-    x_list, y_list = unpack_sol_list(sol_list_in, 0)
+    x_list, y_list = utils.unpack_sol_list(sol_list_in, 0)
 
 
     # Expected results
