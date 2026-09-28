@@ -89,7 +89,7 @@ class ScenarioConfig(BaseModel):
     terminal: TerminalConfig
     state_headers: list[str]
     solver: SolverConfig = SolverConfig()
-    post_process: list[str] = []
+    post_process: list[str] = Field(default_factory=list)
 
 
 def load_config(path: str | Path) -> ScenarioConfig:

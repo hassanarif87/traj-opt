@@ -19,6 +19,7 @@ from space_traj_opt.optimization.utils import (
     denormalize_decision_vec,
     normalize_decision_vec,
 )
+from space_traj_opt.postprocessing.post_proccess import postprocess_trajectory
 from space_traj_opt.postprocessing.utils import save_metadata, sol_to_csv
 from space_traj_opt.sims.config import PhaseConfig, ScenarioConfig, load_config
 
@@ -162,6 +163,8 @@ def run_scenario(config: ScenarioConfig):
     sol_list = built.problem.full_traj_rollout(x_opt, built.full_params)
     sol_to_csv(sol_list, config.state_headers, config.name)
     save_metadata(x_opt, built.problem, config.name, result=result)
+    if config.post_process:
+        postprocess_trajectory(config.name, config)
     return result
 
 
