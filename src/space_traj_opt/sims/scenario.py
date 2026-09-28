@@ -7,6 +7,7 @@ from scipy.optimize import minimize
 
 from space_traj_opt.models.controller3d import CtrlMode as CtrlMode3D
 from space_traj_opt.models.models import CtrlMode as CtrlMode2D
+from space_traj_opt.optimization.constraints import ConstraintType
 from space_traj_opt.optimization.phases import (
     DynEnum,
     Phase,
@@ -113,6 +114,7 @@ def build_scenario(config: ScenarioConfig) -> BuiltScenario:
         )
 
     terminal = config.terminal
+    terminal_kind = _enum_value(ConstraintType, terminal.kind)
     builder.add_terminal(
         TerminalConditions.set_terminal(
             x_final=np.asarray(terminal.final, dtype=float),
@@ -131,7 +133,7 @@ def build_scenario(config: ScenarioConfig) -> BuiltScenario:
         d0_norm,
         d_bounds_norm,
         normalization_vec,
-        terminal.kind,
+        terminal_kind,
         config.num_states,
         len(terminal.final),
         len(config.phases),
