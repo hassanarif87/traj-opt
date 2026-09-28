@@ -39,7 +39,7 @@ class OrbitPlot:
         earth_texture: str | Path = Path(__file__).parent / "earth_texture.jpg",
         epoch_rotation: float = 0.0,
         earth_radius: float = EARTH_RADIUS,
-        resolution: int = 180,
+        resolution: int = 360,
     ):
         self.earth_radius = earth_radius
         self.epoch_rotation = epoch_rotation
