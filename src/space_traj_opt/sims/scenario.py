@@ -164,6 +164,7 @@ def run_scenario(config: ScenarioConfig):
     sol_to_csv(sol_list, config.state_headers, config.name)
     save_metadata(x_opt, built.problem, config.name, result=result)
     if config.post_process:
+        print("Running Post processing: ", config.post_process)
         postprocess_trajectory(config.name, config)
     return result
 
