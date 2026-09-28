@@ -39,18 +39,19 @@ def terminal_constraint_on_state(decision_var, sol, num_state):
 def terminal_constraint_on_orbit(decision_var, sol, num_state):
     # Terminal Defect
     # calculate orbital elements here
-    a_desired, e_desired, v_circ, m_desired = decision_var[-num_state:]
+    a_desired, e_desired, v_mag_des, i_desired, m_desired = decision_var[-num_state:]
     e_scale = 1.0
 
     r = sol.y[:,-1][0:3]
     v = sol.y[:,-1][3:6]
     m = sol.y[:,-1][6]
-    a, e, _ = rv_to_aei(r, v, MU_EARTH)
+    a, e, i = rv_to_aei(r, v, MU_EARTH)
     v_mag = np.linalg.norm(v)
     terminal_defect = np.array([
         (a   - a_desired) / SMA_EARTH,
         (e   - e_desired) / e_scale,
-        (v_mag   - v_circ) / 1000,  # Normalize velocity
+        (v_mag   - v_mag_des) / 1000,  # Normalize velocity
+        (i - i_desired) / np.pi /2,
         (m   - m_desired) / 100,
     ])
 

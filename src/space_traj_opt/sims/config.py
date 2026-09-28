@@ -1,14 +1,10 @@
-from enum import Enum
 from pathlib import Path
 from typing import Any
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-
-class TerminalKind(str, Enum):
-    ON_STATE = "ON_STATE"
-    ON_ORBIT = "ON_ORBIT"
+from space_traj_opt.optimization.constraints import ConstraintType
 
 
 class StateConfig(BaseModel):
@@ -62,7 +58,17 @@ class TerminalConfig(BaseModel):
     final: list[float]
     bounds: Any = None
     normalize: list[float] | None = None
-    kind: TerminalKind = TerminalKind.ON_STATE
+    kind: ConstraintType = ConstraintType.ON_STATE
+
+    @field_validator("kind", mode="before")
+    @classmethod
+    def parse_kind(cls, value):
+        if isinstance(value, str):
+            try:
+                return ConstraintType[value.upper()]
+            except KeyError:
+                return value
+        return value
 
 
 class SolverConfig(BaseModel):
@@ -83,6 +89,7 @@ class ScenarioConfig(BaseModel):
     terminal: TerminalConfig
     state_headers: list[str]
     solver: SolverConfig = SolverConfig()
+    post_process: list[str] = Field(default_factory=list)
 
 
 def load_config(path: str | Path) -> ScenarioConfig:

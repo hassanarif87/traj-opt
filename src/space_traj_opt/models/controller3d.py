@@ -20,19 +20,15 @@ class CtrlMode(enum.Enum):
     POLYNOMIAL = 4
 
 def flight_path_angle(r_vec, v_vec):
-    r = np.linalg.norm(r_vec)
-    v = np.linalg.norm(v_vec)
+    r_vec = np.asarray(r_vec)
+    v_vec = np.asarray(v_vec)
 
-    # Radial velocity
-    v_r = np.dot(r_vec, v_vec) / r
-
-    # Transverse velocity
+    r = np.linalg.norm(r_vec, axis=-1)
+    v = np.linalg.norm(v_vec, axis=-1)
+    v_r = np.sum(r_vec * v_vec, axis=-1) / r
     v_t = np.sqrt(v**2 - v_r**2)
 
-    # Flight path angle
-    gamma = np.arctan2(v_r, v_t)
-
-    return gamma
+    return np.arctan2(v_r, v_t)
 
     
 def dir_from_pitch_yaw(pitch, yaw):

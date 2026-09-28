@@ -12,7 +12,45 @@ figures:
       - vx
       - vy
       - vz
+
+  - name: Accel
+    xdata: time
+    ydata:
+      - ax
+      - ay
+      - az
+
+  - name: Speed
+    xdata: time
+    ydata:
+      - v_eci_mag
+
   - name: Mass
     xdata: time
     ydata:
       - m
+
+  - name: Orbital Elements
+    xdata: time
+    ydata:
+      - e
+      - i
+
+  - name: Semi Major axis
+    xdata: time
+    ydata:
+      - a
+
+  - name: Flight Path Angle
+    xdata: time
+    ydata:
+      - fpa
+      - pitch
+      - yaw
+
+  - name: Apogee / Perigee altitude
+    xdata: time
+    ydata:
+      - h_periapsis
+      - h_apoapsis
+
