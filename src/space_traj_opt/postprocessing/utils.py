@@ -1,3 +1,4 @@
+import json
 from functools import wraps
 from pathlib import Path
 from timeit import default_timer
@@ -7,7 +8,7 @@ import pandas as pd
 from numpy.typing import ArrayLike
 
 from space_traj_opt import OUT_DIR
-from space_traj_opt.math.integrator import ODEResult
+from space_traj_opt.math.integrator import OdeResult
 from space_traj_opt.optimization.problem import Problem
 
 
@@ -41,7 +42,7 @@ def vocalTimeit(*args, **kwargs):
         return wrapper
     return decorator
 
-def unpack_sol_list(sol_list_in: list[ODEResult] , state_index: list[int])-> tuple[list, list]:
+def unpack_sol_list(sol_list_in: list[OdeResult] , state_index: list[int])-> tuple[list, list]:
     """Helper function to add time offsets to each phase
 
     Args:

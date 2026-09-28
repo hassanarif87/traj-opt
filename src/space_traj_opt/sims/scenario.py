@@ -7,7 +7,6 @@ from scipy.optimize import minimize
 
 from space_traj_opt.models.controller3d import CtrlMode as CtrlMode3D
 from space_traj_opt.models.models import CtrlMode as CtrlMode2D
-from space_traj_opt.optimization.constraints import ConstraintType
 from space_traj_opt.optimization.phases import (
     DynEnum,
     Phase,
@@ -20,7 +19,7 @@ from space_traj_opt.optimization.utils import (
     denormalize_decision_vec,
     normalize_decision_vec,
 )
-from space_traj_opt.postprocessing.post_proccess import problem_results, sol_to_csv
+from space_traj_opt.postprocessing.utils import save_metadata, sol_to_csv
 from space_traj_opt.sims.config import PhaseConfig, ScenarioConfig, load_config
 
 
@@ -131,7 +130,7 @@ def build_scenario(config: ScenarioConfig) -> BuiltScenario:
         d0_norm,
         d_bounds_norm,
         normalization_vec,
-        ConstraintType[terminal.kind.name],
+        terminal.kind,
         config.num_states,
         len(terminal.final),
         len(config.phases),
@@ -162,7 +161,7 @@ def run_scenario(config: ScenarioConfig):
     x_opt = denormalize_decision_vec(result.x, built.normalization_vec)
     sol_list = built.problem.full_traj_rollout(x_opt, built.full_params)
     sol_to_csv(sol_list, config.state_headers, config.name)
-    problem_results(x_opt, built.problem, config.name, result=result)
+    save_metadata(x_opt, built.problem, config.name, result=result)
     return result
 
 
