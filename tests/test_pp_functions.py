@@ -27,7 +27,8 @@ def test_postprocess_trajectory_runs_configured_processors(monkeypatch, tmp_path
         {"phase": [0, 1], "time": [0.0, 1.0], "x": [1.0, 2.0], "y": [3.0, 4.0]}
     )
     decision_vector = np.array([1, 2, 30, 31, 32, 3, 4, 40, 41, 42, 99])
-    calls = []
+    phase_calls = []
+    processor_calls = []
     client = SimpleNamespace(
         metadata={"x_opt": decision_vector.tolist()},
         df=trajectory,
@@ -35,12 +36,14 @@ def test_postprocess_trajectory_runs_configured_processors(monkeypatch, tmp_path
     )
 
     def fake_process_phase(phase_df, ctrl_params, model_params, state_headers):
-        calls.append((phase_df.index.tolist(), ctrl_params.copy(), model_params))
+        phase_calls.append(
+            (phase_df.index.tolist(), ctrl_params.copy(), model_params)
+        )
         return pd.DataFrame({"processed": [model_params[0]]}, index=phase_df.index)
 
     def mark_processed(phase_df, decision_vector, scenario_config):
         assert "processed" in phase_df
-        calls.append("mark_processed")
+        processor_calls.append("mark_processed")
         return phase_df.assign(marked=True)
 
     monkeypatch.setattr(pp_functions, "process_phase", fake_process_phase)
@@ -56,12 +59,12 @@ def test_postprocess_trajectory_runs_configured_processors(monkeypatch, tmp_path
 
     result = post_proccess.postprocess_trajectory("trajectory", config)
 
-    assert [call[0] for call in calls] == [[0], [1]]
-    np.testing.assert_array_equal(calls[0][1], [1, 2])
-    np.testing.assert_array_equal(calls[1][1], [3])
-    assert [call[2] for call in calls] == [(10.0,), (20.0, 21.0)]
+    assert [call[0] for call in phase_calls] == [[0], [1]]
+    np.testing.assert_array_equal(phase_calls[0][1], [1, 2])
+    np.testing.assert_array_equal(phase_calls[1][1], [3])
+    assert [call[2] for call in phase_calls] == [(10.0,), (20.0, 21.0)]
     assert result["processed"].tolist() == [10.0, 20.0]
-    assert calls[2] == "mark_processed"
+    assert processor_calls == ["mark_processed"]
     assert result["marked"].tolist() == [True, True]
     assert client.out.exists()
 
