@@ -27,7 +27,7 @@ $$ \boxed{\delta U \approx \frac{\partial U}{\partial X_0}\delta X_0}. $$
 
 Thus, instead of solving the complete nonlinear problem for every possible initial condition, we can describe the behavior near a nominal solution using derivatives.
 
-Variations
+## Variations
 
 In the calculus of variations, a variation represents a small change to a function or trajectory.
 
@@ -52,7 +52,7 @@ The same concept applies to the control:
 $$ U(t)=U_0(t)+\delta U(t). $$
 
 The first variation describes how the solution responds to an infinitesimal change while ignoring second-order effects.
-
+# Algorithm
 ## 1. Principle
 
 Suppose an optimizer produces an optimal trajectory for a nominal initial state. The trajectory consists of a state history and a corresponding optimal guidance history:
