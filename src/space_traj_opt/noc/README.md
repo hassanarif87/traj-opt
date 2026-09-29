@@ -1,4 +1,58 @@
 # Neighborhood-Optimal Guidance from Perturbed Optimal Trajectories
+## Perturbation Theory and the Method of Variations
+
+The neighborhood-optimal guidance approach is based on a simple idea from perturbation theory and the calculus of variations: a complicated nonlinear solution can often be approximated locally by studying how the solution changes when its inputs are perturbed slightly.
+
+Perturbation Theory
+
+Suppose a system has a nominal solution
+
+$$ X_0(t),\qquad U_0(t) $$
+
+and we introduce a small perturbation to the initial condition,
+
+$$ X_0 \rightarrow X_0+\delta X_0. $$
+
+The resulting solution can be expressed as
+
+$$ X=X_0+\delta X+\mathcal{O}(\|\delta X_0\|^2). $$
+
+For sufficiently small perturbations, the higher-order terms can be neglected, giving the first-order approximation
+
+$$ \boxed{\delta X \approx \frac{\partial X}{\partial X_0}\delta X_0}. $$
+
+The same idea applies to the control:
+
+$$ \boxed{\delta U \approx \frac{\partial U}{\partial X_0}\delta X_0}. $$
+
+Thus, instead of solving the complete nonlinear problem for every possible initial condition, we can describe the behavior near a nominal solution using derivatives.
+
+Variations
+
+In the calculus of variations, a variation represents a small change to a function or trajectory.
+
+For a nominal trajectory
+
+$$ X_0(t), $$
+
+a neighboring trajectory is written as
+
+$$ X(t)=X_0(t)+\epsilon\,\eta(t), $$
+
+where \(\epsilon\) is small and \(\eta(t)\) describes the direction of the variation.
+
+The resulting change
+
+$$ \delta X=\epsilon\eta $$
+
+is called the first variation.
+
+The same concept applies to the control:
+
+$$ U(t)=U_0(t)+\delta U(t). $$
+
+The first variation describes how the solution responds to an infinitesimal change while ignoring second-order effects.
+
 ## 1. Principle
 
 Suppose an optimizer produces an optimal trajectory for a nominal initial state. The trajectory consists of a state history and a corresponding optimal guidance history:
