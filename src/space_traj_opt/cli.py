@@ -7,7 +7,7 @@ from space_traj_opt.sims.scenario import run_scenario_file
 
 def handle_run(args):
     print(f"Running simulation for: {args.scenario}")
-    result = run_scenario_file(args.scenario)
+    result = run_scenario_file(args.scenario, args.output)
     print(f"Success: {result.success}")
     print(f"Message: {result.message}")
 
@@ -37,6 +37,15 @@ def main():
         type=str,
         required=True,
         help="Simulation name.",
+    )
+
+    # Paths are relative to output dir
+    parser_run.add_argument(
+        "-o",
+        "--output",
+        type=str,
+        default="./",
+        help="Output result files.",
     )
     parser_run.set_defaults(func=handle_run)
 
