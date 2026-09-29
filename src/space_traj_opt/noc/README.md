@@ -334,6 +334,26 @@ $$ \boxed{ X_0(a),U_0(a) } $$
 Create twelve perturbed initial conditions:
 
 $$ \boxed{ \pm\Delta x,\; \pm\Delta y,\; \pm\Delta z,\; \pm\Delta v_x,\; \pm\Delta v_y,\; \pm\Delta v_z } $$
+
+We get something like:
+
+```
+nominal
+   |
+   +-- +dx
+   +-- -dx
+   +-- +dy
+   +-- -dy
+   +-- +dz
+   +-- -dz
+   +-- +dvx
+   +-- -dvx
+   +-- +dvy
+   +-- -dvy
+   +-- +dvz
+   +-- -dvz
+```
+
 ### Step 3
 
 Solve the optimization problem independently for each perturbation.
@@ -417,166 +437,8 @@ $$ \boxed{ U=U_0(a)+\delta U. } $$
 
 Thus a computationally expensive nonlinear trajectory optimizer is converted into a lightweight, acceleration-scheduled feedback controller.
 
-The essential result is:
+Acceleration is used as a lookup on the gain table to extract the GainMatrix for that step:
 
-$$ \boxed{ \underbrace{ \text{13 optimized trajectories} }_{\text{offline}} \quad\Longrightarrow\quad \underbrace{ K(a) }_{\text{gain table}} \quad\Longrightarrow\quad \underbrace{ U=U_0(a)+K(a)\delta X }_{\text{online guidance}} } $$
-
-This is the core neighborhood-optimal guidance construction you can build directly on top of your existing trajectory optimizer.
-
-
-# Implementation 
-
-Breaking down the approach in one cohesive instruction set. Then implement a sample python script I will use 12 purturations +/- pos and +/- vel
-
-With ± position and ± velocity perturbations, the clean formulation is a local finite-difference approximation of the optimal guidance policy.
-
-If you are perturbing 3 position states + 3 velocity states, you have 6 state dimensions and therefore 12 neighboring trajectories:
-
-$$ \pm\Delta x,\quad \pm\Delta y,\quad \pm\Delta z,\quad \pm\Delta v_x,\quad\pm\Delta v_y,\quad\pm\Delta v_z. $$
-
-That gives you a \(2\times6\) gain matrix at every acceleration point.
-
-## 1. Overall procedure
-Step 1 — Solve the nominal trajectory
-
-Run your normal optimizer:
-
-$$ X_0(t),\qquad U_0(t) $$
-
-where
-
-$$ X = \begin{bmatrix} x&y&z&v_x&v_y&v_z \end{bmatrix}^T $$
-
-and
-
-$$ U = \begin{bmatrix} \theta\\ \psi \end{bmatrix}. $$
-
-Also calculate the scalar acceleration used for scheduling:
-
-$$ a(t)=\frac{T(t)}{m(t)} $$
-
-or whatever acceleration quantity you want the guidance scheduled against.
-
-The nominal trajectory therefore becomes:
-
-$$ X_0(a),\qquad U_0(a). $$
-## 2. Generate 12 neighboring optimal trajectories
-
-Perturb the initial state in each dimension:
-
-$$ +x,\;-x $$ $$ +y,\;-y $$ $$ +z,\;-z $$ $$ +v_x,\;-v_x $$ $$ +v_y,\;-v_y $$ $$ +v_z,\;-v_z. $$
-
-For each perturbation, rerun your optimizer.
-
-This is important: these aren't just propagated trajectories. They should be the new optimal trajectories for the perturbed initial conditions.
-
-You therefore get:
-```
-nominal
-   |
-   +-- +dx
-   +-- -dx
-   +-- +dy
-   +-- -dy
-   +-- +dz
-   +-- -dz
-   +-- +dvx
-   +-- -dvx
-   +-- +dvy
-   +-- -dvy
-   +-- +dvz
-   +-- -dvz
-```
-Each trajectory contains:
-```
-acceleration
-x y z
-vx vy vz
-pitch
-yaw
-```
-## 3. Put every trajectory onto the same acceleration grid
-
-Choose something like:
-
-accel_grid = np.linspace(a_max, a_min, 100)
-
-and interpolate every trajectory onto that grid.
-
-At acceleration \(a_j\), you now have
-
-$$ X_{+x}(a_j),\quad X_{-x}(a_j) $$
-
-etc.
-
-and
-
-$$ U_{+x}(a_j),\quad U_{-x}(a_j). $$
-## 4. Calculate the state sensitivity
-
-For the \(x\) perturbation:
-
-$$ \frac{\partial X}{\partial x} \approx \frac{X_{+x}-X_{-x}} {2\Delta x}. $$
-
-Likewise:
-
-$$ \frac{\partial X}{\partial y} \approx \frac{X_{+y}-X_{-y}} {2\Delta y} $$
-
-and so forth.
-
-At each acceleration point, assemble:
-
-$$ D_X(a)= \begin{bmatrix} \frac{\partial X}{\partial x} & \frac{\partial X}{\partial y} & \frac{\partial X}{\partial z} & \frac{\partial X}{\partial v_x} & \frac{\partial X}{\partial v_y} & \frac{\partial X}{\partial v_z} \end{bmatrix}. $$
-
-Since \(X\) has six components,
-
-$$ D_X\in\mathbb{R}^{6\times6}. $$
-## 5. Calculate the corresponding guidance sensitivity
-
-Do exactly the same thing with pitch and yaw.
-
-For example:
-
-$$ \frac{\partial\theta}{\partial x} \approx \frac{\theta_{+x}-\theta_{-x}} {2\Delta x}. $$
-
-You obtain
-
-$$ D_U(a)= \begin{bmatrix} \partial\theta/\partial x & \partial\theta/\partial y & \partial\theta/\partial z & \partial\theta/\partial v_x & \partial\theta/\partial v_y & \partial\theta/\partial v_z \\[3pt] \partial\psi/\partial x & \partial\psi/\partial y & \partial\psi/\partial z & \partial\psi/\partial v_x & \partial\psi/\partial v_y & \partial\psi/\partial v_z \end{bmatrix}. $$
-
-So
-
-$$ D_U\in\mathbb{R}^{2\times6}. $$
-## 6. Calculate the neighborhood-optimal gain
-
-The local relationship is
-
-$$ \delta U = K(a)\delta X. $$
-
-Since
-
-$$ \delta X=D_X\delta X_0 $$
-
-and
-
-$$ \delta U=D_U\delta X_0, $$
-
-we have
-
-$$ D_U=K D_X. $$
-
-Therefore:
-
-$$ \boxed{ K(a)=D_U(a)D_X(a)^{-1} } $$
-
-and
-
-$$ K(a)\in\mathbb{R}^{2\times6}. $$
-
-Don't actually compute the inverse numerically. Use np.linalg.solve() or a pseudoinverse for robustness.
-
-## 7. Your final gain table
-
-You end up with:
 ```
 acceleration
     |
@@ -597,16 +459,8 @@ acceleration
     +-- K[1,4]  d_yaw/d_vy
     +-- K[1,5]  d_yaw/d_vz
 ```
-At runtime:
+The essential result is:
 
-$$ \delta X=X_{\text{actual}}-X_0(a) $$
+$$ \boxed{ \underbrace{ \text{13 optimized trajectories} }_{\text{offline}} \quad\Longrightarrow\quad \underbrace{ K(a) }_{\text{gain table}} \quad\Longrightarrow\quad \underbrace{ U=U_0(a)+K(a)\delta X }_{\text{online guidance}} } $$
 
-and
-
-$$ \boxed{ U=U_0(a)+K(a)\delta X. } $$
-
-So:
-
-$$ \boxed{ \theta = \theta_0(a)+K_\theta(a)\delta X } $$ $$ \boxed{ \psi = \psi_0(a)+K_\psi(a)\delta X. } $$
-
-That's the complete online guidance law.
+This is the core neighborhood-optimal guidance construction using an offline trajectory optimizer.
