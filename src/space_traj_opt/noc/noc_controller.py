@@ -3,6 +3,8 @@ from dataclasses import dataclass
 import numpy as np
 
 from space_traj_opt.models.models3d import dynamics_plant
+from space_traj_opt.models.controller3d import dir_from_pitch_yaw, dcm_rsw2eci
+
 from space_traj_opt.noc.noc_gain_generation import GainTable, load_gain_table
 
 
@@ -19,8 +21,15 @@ class NOCGuidance:
         # Recalc  accel from plant, in a real alg ths would be from the IMU.
         dx = dynamics_plant(t, x)
         sensed_accel = np.linalg.norm( dx[3:6]) 
-        ## Pitch and yaw are parametrized in the rsw frame.
+
+        # Pitch and yaw are parametrized in the rsw frame.
         pitch, yaw = self.table.guidance(sensed_accel, x[0:6] )
+        thrust_hat_rsw = dir_from_pitch_yaw(pitch, yaw)
 
         # Pitch yaw to thrust vector
-        return thrust_hat_eci
+        return dcm_rsw2eci(x[0:3], x[3:6]) @ thrust_hat_rsw
+
+@dataclass
+class Vehicle:
+    controller: 
+
