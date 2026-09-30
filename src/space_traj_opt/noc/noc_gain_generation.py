@@ -39,7 +39,7 @@ class Trajectory:
 
     All arrays have shape (N,).
 
-    acceleration:
+    var:
         Scheduling variable used for the guidance table.
 
     state:
@@ -51,12 +51,12 @@ class Trajectory:
             [pitch, yaw]
     """
 
-    acceleration: np.ndarray
+    var: np.ndarray
     state: np.ndarray
     control: np.ndarray
 
     def __post_init__(self):
-        self.acceleration = np.asarray(self.acceleration)
+        self.var = np.asarray(self.var)
         self.state = np.asarray(self.state)
         self.control = np.asarray(self.control)
 
@@ -72,7 +72,7 @@ class Trajectory:
             )
 
         if not (
-            len(self.acceleration)
+            len(self.var)
             == len(self.state)
             == len(self.control)
         ):
@@ -85,15 +85,15 @@ class Trajectory:
 
 def interpolate_trajectory(
     trajectory: Trajectory,
-    acceleration_grid: np.ndarray,
+    var_grid: np.ndarray,
 ) -> Trajectory:
     """
-    Interpolate a trajectory onto a common acceleration grid.
+    Interpolate a trajectory onto a common var grid.
 
-    Assumes acceleration is monotonic.
+    Assumes var is monotonic.
     """
 
-    a = trajectory.acceleration
+    a = trajectory.var
 
     # np.interp expects increasing x.
     if a[0] > a[-1]:
@@ -106,21 +106,21 @@ def interpolate_trajectory(
 
     if np.any(np.diff(a) <= 0):
         raise ValueError(
-            "Acceleration must be strictly monotonic for interpolation."
+            "Lookup var must be strictly monotonic for interpolation."
         )
 
     state_interp = np.column_stack([
-        np.interp(acceleration_grid, a, state[:, i])
+        np.interp(var_grid, a, state[:, i])
         for i in range(6)
     ])
 
     control_interp = np.column_stack([
-        np.interp(acceleration_grid, a, control[:, i])
+        np.interp(var_grid, a, control[:, i])
         for i in range(2)
     ])
 
     return Trajectory(
-        acceleration=acceleration_grid,
+        var=var_grid,
         state=state_interp,
         control=control_interp,
     )
@@ -135,7 +135,7 @@ class GainTable:
     """
     Neighborhood-optimal guidance table.
 
-    acceleration:
+    var:
         Shape (M,)
 
     nominal_state:
@@ -151,14 +151,14 @@ class GainTable:
         gain[:, 1, :] = yaw gains
     """
 
-    acceleration: np.ndarray
+    var: np.ndarray
     nominal_state: np.ndarray
     nominal_control: np.ndarray
     gain: np.ndarray
 
     def guidance(
         self,
-        acceleration: float,
+        var: float,
         state: np.ndarray,
     ) -> np.ndarray:
         """
@@ -166,8 +166,8 @@ class GainTable:
 
         Parameters
         ----------
-        acceleration:
-            Current acceleration.
+        var:
+            Current var.
 
         state:
             Current [x, y, z, vx, vy, vz].
@@ -186,8 +186,8 @@ class GainTable:
         # Interpolate nominal state/control.
         nominal_state = np.array([
             np.interp(
-                acceleration,
-                self.acceleration,
+                var,
+                self.var,
                 self.nominal_state[:, i],
             )
             for i in range(6)
@@ -195,8 +195,8 @@ class GainTable:
 
         nominal_control = np.array([
             np.interp(
-                acceleration,
-                self.acceleration,
+                var,
+                self.var,
                 self.nominal_control[:, i],
             )
             for i in range(2)
@@ -208,14 +208,14 @@ class GainTable:
         for i in range(2):
             for j in range(6):
                 K[i, j] = np.interp(
-                    acceleration,
-                    self.acceleration,
+                    var,
+                    self.var,
                     self.gain[:, i, j],
                 )
 
         dx = state - nominal_state
-
-        return nominal_control + K @ dx
+        control = nominal_control + K @ dx
+        return  control
 
 
 # ---------------------------------------------------------------------------
@@ -226,7 +226,7 @@ def build_gain_table(
     nominal: Trajectory,
     perturbations: dict[str, Trajectory],
     deltas: dict[str, float],
-    acceleration_grid: np.ndarray,
+    var_grid: np.ndarray,
 ) -> GainTable:
     """
     Construct a neighborhood-optimal gain table.
@@ -258,8 +258,8 @@ def build_gain_table(
                 "vz": dvz,
             }
 
-    acceleration_grid:
-        Common acceleration grid.
+    var_grid:
+        Common var grid.
 
     Returns
     -------
@@ -269,19 +269,19 @@ def build_gain_table(
     # Interpolate nominal.
     nominal_i = interpolate_trajectory(
         nominal,
-        acceleration_grid,
+        var_grid,
     )
 
     # Interpolate all neighboring trajectories.
     perturbed_i = {
         name: interpolate_trajectory(
             trajectory,
-            acceleration_grid,
+            var_grid,
         )
         for name, trajectory in perturbations.items()
     }
 
-    n = len(acceleration_grid)
+    n = len(var_grid)
 
     gain = np.empty((n, 2, 6))
 
@@ -353,7 +353,7 @@ def build_gain_table(
         gain[k] = K
 
     return GainTable(
-        acceleration=acceleration_grid,
+        var=var_grid,
         nominal_state=nominal_i.state,
         nominal_control=nominal_i.control,
         gain=gain,
@@ -372,7 +372,7 @@ def save_gain_table(
 
     np.savez_compressed(
         filename,
-        acceleration=table.acceleration,
+        var=table.var,
         nominal_state=table.nominal_state,
         nominal_control=table.nominal_control,
         gain=table.gain,
@@ -387,7 +387,7 @@ def load_gain_table(
     data = np.load(filename)
 
     return GainTable(
-        acceleration=data["acceleration"],
+        var=data["acceleration"],
         nominal_state=data["nominal_state"],
         nominal_control=data["nominal_control"],
         gain=data["gain"],

@@ -20,7 +20,6 @@ class NOCGuidance:
 
         # Recalc  accel from plant, in a real alg ths would be from the IMU.
         mass = x[6] 
-
         # Pitch and yaw are parametrized in the rsw frame.
         pitch, yaw = self.table.guidance(-mass, x[0:6] )
         thrust_hat_rsw = dir_from_pitch_yaw(pitch, yaw)
