@@ -15,6 +15,8 @@ class NOCGuidance:
     control_gradient: np.ndarray = field(
         default_factory=lambda: np.zeros(2), init=False
     )
+    t_togo: float = field(default=999.0, init=False)
+    terminal_phase: bool = field(default=False, init=False)
 
     def __post_init__(self):
         if not 0.0 <= self.control_gradient_alpha < 1.0:
@@ -26,15 +28,15 @@ class NOCGuidance:
         return cls(table)
 
     def update(self, t, x):
-        mass = x[6]
-        if mass < 700 and self.previous_control is not None:
+        if self.t_togo < 20 or self.terminal_phase: #mass < 700 and self.previous_control is not None:
+            self.terminal_phase = True
             control = self.previous_control + self.control_gradient
             self.previous_control = control.copy()
+            self.t_togo = self.table.var_grid[-1] - t
         else:
-            control = np.asarray(
-                self.table.guidance(-mass, x[0:6]), dtype=float
-            )
-            if self.previous_control is not None:
+            control, self.t_togo = self.table.guidance(t, x[0:6])
+            
+            if self.previous_control is not None: # and mass > 900:
                 control_delta = control - self.previous_control
                 alpha = self.control_gradient_alpha
                 self.control_gradient = (
@@ -47,7 +49,7 @@ class NOCGuidance:
         thrust_hat_rsw = dir_from_pitch_yaw(pitch, yaw)
 
         # Pitch yaw to thrust vector
-        return dcm_rsw2eci(x[0:3], x[3:6]) @ thrust_hat_rsw
+        return dcm_rsw2eci(x[0:3], x[3:6]) @ thrust_hat_rsw , pitch, yaw, self.t_togo
 
 @dataclass
 class Vehicle:
@@ -55,7 +57,7 @@ class Vehicle:
     plant_params: tuple
 
     def run(self, t, x):
-        u = self.controller.update(t,x)
+        u, _,_,_= self.controller.update(t,x)
         dx = dynamics_plant(t,x,u,self.plant_params)
         return dx
 

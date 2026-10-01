@@ -104,6 +104,7 @@ def interpolate_trajectory(
     """
 
     a = trajectory.var
+    state_deriv = trajectory.state_deriv
 
     # np.interp expects increasing x.
     if a[0] > a[-1]:
@@ -123,6 +124,10 @@ def interpolate_trajectory(
         np.interp(var_grid, a, state[:, i])
         for i in range(6)
     ])
+    state_interp_deriv = np.column_stack([
+        np.interp(var_grid, a, state_deriv[:, i])
+        for i in range(6)
+    ]) 
 
     control_interp = np.column_stack([
         np.interp(var_grid, a, control[:, i])
@@ -132,6 +137,7 @@ def interpolate_trajectory(
     return Trajectory(
         var=var_grid,
         state=state_interp,
+        state_deriv=state_interp_deriv,
         control=control_interp,
         t_terminal=trajectory.t_terminal
     )
@@ -162,7 +168,7 @@ class GainTable:
         control_gain[:, 1, :] = yaw gains
     """
 
-    var: np.ndarray
+    var_grid: np.ndarray
     nominal_state: np.ndarray
     nominal_control: np.ndarray
     control_gain: np.ndarray
@@ -203,12 +209,13 @@ class GainTable:
         # Start by assuming no index-time correction.
         t_index = t
 
-        # Estimate index time.
-        for _ in range(2):
+        # Estimate index time. https://ntrs.nasa.gov/api/citations/19670025607/downloads/19670025607.pdf
+        epsilon = 10.
+        for _ in range(5):
 
             x_nom = self._interpolate_nominal_state(t_index)
             xdot_nom = self._interpolate_nominal_state_deriv(t_index)
-            m = self._interpolate_terminal_time_gain(t_index)
+            K_index = self._interpolate_terminal_time_gain(t_index)
 
             # Eq. corresponding to fixed dpsi = 0
             dx = (
@@ -217,11 +224,11 @@ class GainTable:
                 - xdot_nom * (t - t_index)
             )
 
-            denom = 1.0 + m @ xdot_nom
+            denom = 1.0 + K_index @ xdot_nom
 
-            epsilon = (m @ dx) / denom
-
+            epsilon = (K_index @ dx) / denom
             t_index -= epsilon
+        # print(epsilon)
 
         # ------------------------------------------------------------
         # Normal neighboring-optimal feedback, but indexed by t_index
@@ -235,7 +242,8 @@ class GainTable:
 
         control = u_nom + K @ dx
 
-        return control
+        t_togo = self.var_grid[-1] - t_index
+        return control, t_togo
 
     def _interpolate_terminal_time_gain(
         self,
@@ -245,8 +253,21 @@ class GainTable:
         return np.array([
             np.interp(
                 var,
-                self.var,
+                self.var_grid,
                 self.terminal_time_gain[:, i],
+            )
+            for i in range(6)
+        ])
+    
+    def _interpolate_nominal_state_deriv(self, var: float) -> np.ndarray:
+        """
+        Interpolate nominal state derivative for a given var.
+        """ 
+        return np.array([
+            np.interp(
+                var,
+                self.var_grid,
+                self.nominal_state_deriv[:, i],
             )
             for i in range(6)
         ])
@@ -258,7 +279,7 @@ class GainTable:
         return np.array([
             np.interp(
                 var,
-                self.var,
+                self.var_grid,
                 self.nominal_state[:, i],
             )
             for i in range(6)
@@ -271,7 +292,7 @@ class GainTable:
         nominal_control = np.array([
             np.interp(
                 var,
-                self.var,
+                self.var_grid,
                 self.nominal_control[:, i],
             )
             for i in range(2)
@@ -286,7 +307,7 @@ class GainTable:
             for j in range(6):
                 K[i, j] = np.interp(
                     var,
-                    self.var,
+                    self.var_grid,
                     self.control_gain[:, i, j],
                 )
         return K
@@ -443,7 +464,7 @@ def build_gain_table(
         control_gain[k] = K
         terminal_time_gain[k] = KT[0, :]
     return GainTable(
-        var=var_grid,
+        var_grid=var_grid,
         nominal_state=nominal_i.state,
         nominal_control=nominal_i.control,
         control_gain=control_gain,
@@ -464,8 +485,9 @@ def save_gain_table(
 
     np.savez_compressed(
         filename,
-        var=table.var,
+        var_grid=table.var_grid,
         nominal_state=table.nominal_state,
+        nominal_state_deriv=table.nominal_state_deriv,
         nominal_control=table.nominal_control,
         control_gain=table.control_gain,
         terminal_time_gain=table.terminal_time_gain,
@@ -480,8 +502,9 @@ def load_gain_table(
     data = np.load(filename)
 
     return GainTable(
-        var=data["var"],
+        var_grid=data["var_grid"],
         nominal_state=data["nominal_state"],
+        nominal_state_deriv=data["nominal_state_deriv"],
         nominal_control=data["nominal_control"],
         control_gain=data["control_gain"],
         terminal_time_gain=data["terminal_time_gain"],
