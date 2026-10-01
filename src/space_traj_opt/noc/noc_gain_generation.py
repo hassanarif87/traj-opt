@@ -53,11 +53,21 @@ class Trajectory:
 
     var: np.ndarray
     state: np.ndarray
+    state_deriv: np.ndarray
     control: np.ndarray
+    t_terminal: float
 
     def __post_init__(self):
         self.var = np.asarray(self.var)
         self.state = np.asarray(self.state)
+        self.state_deriv = np.asarray(self.state_deriv)
+        self.control = np.asarray(self.control)
+
+        if self.state_deriv.ndim != 2 or self.state_deriv.shape[1] != 6:
+            raise ValueError(
+                "state_deriv must have shape (N, 6): "
+                "[x, y, z, vx, vy, vz]"
+            )
         self.control = np.asarray(self.control)
 
         if self.state.ndim != 2 or self.state.shape[1] != 6:
@@ -123,6 +133,7 @@ def interpolate_trajectory(
         var=var_grid,
         state=state_interp,
         control=control_interp,
+        t_terminal=trajectory.t_terminal
     )
 
 
@@ -144,17 +155,20 @@ class GainTable:
     nominal_control:
         Shape (M, 2)
 
-    gain:
+    control_gain:
         Shape (M, 2, 6)
 
-        gain[:, 0, :] = pitch gains
-        gain[:, 1, :] = yaw gains
+        control_gain[:, 0, :] = pitch gains
+        control_gain[:, 1, :] = yaw gains
     """
 
     var: np.ndarray
     nominal_state: np.ndarray
     nominal_control: np.ndarray
-    gain: np.ndarray
+    control_gain: np.ndarray
+    terminal_time_gain: np.ndarray
+    nominal_state_deriv: np.ndarray
+    
 
     def guidance(
         self,
@@ -182,9 +196,66 @@ class GainTable:
 
         if state.shape != (6,):
             raise ValueError("state must have shape (6,)")
+        
+        # Actual clock time
+        t = var
 
-        # Interpolate nominal state/control.
-        nominal_state = np.array([
+        # Start by assuming no index-time correction.
+        t_index = t
+
+        # Estimate index time.
+        for _ in range(2):
+
+            x_nom = self._interpolate_nominal_state(t_index)
+            xdot_nom = self._interpolate_nominal_state_deriv(t_index)
+            m = self._interpolate_terminal_time_gain(t_index)
+
+            # Eq. corresponding to fixed dpsi = 0
+            dx = (
+                state
+                - x_nom
+                - xdot_nom * (t - t_index)
+            )
+
+            denom = 1.0 + m @ xdot_nom
+
+            epsilon = (m @ dx) / denom
+
+            t_index -= epsilon
+
+        # ------------------------------------------------------------
+        # Normal neighboring-optimal feedback, but indexed by t_index
+        # ------------------------------------------------------------
+
+        x_nom = self._interpolate_nominal_state(t_index)
+        u_nom = self._interpolate_nominal_control(t_index)
+        K = self._interpolate_control_gain(t_index)
+
+        dx = state - x_nom
+
+        control = u_nom + K @ dx
+
+        return control
+
+    def _interpolate_terminal_time_gain(
+        self,
+        var: float,
+    ) -> np.ndarray:
+
+        return np.array([
+            np.interp(
+                var,
+                self.var,
+                self.terminal_time_gain[:, i],
+            )
+            for i in range(6)
+        ])
+
+    def _interpolate_nominal_state(self, var: float) -> np.ndarray:
+        """
+        Interpolate nominal state for a given var.
+        """ 
+        return np.array([
             np.interp(
                 var,
                 self.var,
@@ -192,6 +263,10 @@ class GainTable:
             )
             for i in range(6)
         ])
+    def _interpolate_nominal_control(self, var: float) -> np.ndarray:
+        """
+        Interpolate nominal control for a given var.
+        """ 
 
         nominal_control = np.array([
             np.interp(
@@ -201,8 +276,10 @@ class GainTable:
             )
             for i in range(2)
         ])
-
-        # Interpolate each gain element.
+        return nominal_control
+    
+    def _interpolate_control_gain(self, var: float) -> np.ndarray:
+        # Interpolate each control_gain element.
         K = np.empty((2, 6))
 
         for i in range(2):
@@ -210,12 +287,9 @@ class GainTable:
                 K[i, j] = np.interp(
                     var,
                     self.var,
-                    self.gain[:, i, j],
+                    self.control_gain[:, i, j],
                 )
-
-        dx = state - nominal_state
-        control = nominal_control + K @ dx
-        return  control
+        return K
 
 
 # ---------------------------------------------------------------------------
@@ -229,7 +303,7 @@ def build_gain_table(
     var_grid: np.ndarray,
 ) -> GainTable:
     """
-    Construct a neighborhood-optimal gain table.
+    Construct a neighborhood-optimal control_gain table.
 
     Parameters
     ----------
@@ -259,7 +333,7 @@ def build_gain_table(
             }
 
     var_grid:
-        Common var grid.
+        Common var grid. Independent loopup variable.
 
     Returns
     -------
@@ -283,8 +357,8 @@ def build_gain_table(
 
     n = len(var_grid)
 
-    gain = np.empty((n, 2, 6))
-
+    control_gain = np.empty((n, 2, 6))
+    terminal_time_gain = np.empty((n, 6))
     state_order = [
         "x",
         "y",
@@ -314,6 +388,16 @@ def build_gain_table(
 
         DU = np.empty((2, 6))
 
+        # ---------------------------------------------------------------
+        # Build dT / d(initial state)
+        #
+        # Shape:
+        #     DT = 1 x 6
+        # ---------------------------------------------------------------
+
+        DT = np.empty((1, 6))
+
+
         for j, state_name in enumerate(state_order):
 
             plus = perturbed_i[f"+{state_name}"]
@@ -330,6 +414,9 @@ def build_gain_table(
                 plus.control[k] - minus.control[k]
             ) / (2.0 * delta)
 
+            DT[0, j] = (
+                plus.t_terminal - minus.t_terminal
+            ) / (2.0 * delta)
         # ---------------------------------------------------------------
         # DU = K DX
         #
@@ -344,19 +431,24 @@ def build_gain_table(
 
         try:
             K = np.linalg.solve(DX.T, DU.T).T
+            KT = np.linalg.solve(DX.T, DT.T).T
 
         except np.linalg.LinAlgError:
+            print(f"Warning: Singular DX at index {k}. Using pseudoinverse. Condition number: {np.linalg.cond(DX)}")
             # If the neighborhood becomes locally singular, use a
             # pseudoinverse rather than allowing the entire table to fail.
             K = DU @ np.linalg.pinv(DX)
+            KT = DT @ np.linalg.pinv(DX)
 
-        gain[k] = K
-
+        control_gain[k] = K
+        terminal_time_gain[k] = KT[0, :]
     return GainTable(
         var=var_grid,
         nominal_state=nominal_i.state,
         nominal_control=nominal_i.control,
-        gain=gain,
+        control_gain=control_gain,
+        terminal_time_gain=terminal_time_gain,
+        nominal_state_deriv=nominal_i.state_deriv,
     )
 
 
@@ -375,7 +467,8 @@ def save_gain_table(
         var=table.var,
         nominal_state=table.nominal_state,
         nominal_control=table.nominal_control,
-        gain=table.gain,
+        control_gain=table.control_gain,
+        terminal_time_gain=table.terminal_time_gain,
     )
 
 
@@ -387,10 +480,11 @@ def load_gain_table(
     data = np.load(filename)
 
     return GainTable(
-        var=data["acceleration"],
+        var=data["var"],
         nominal_state=data["nominal_state"],
         nominal_control=data["nominal_control"],
-        gain=data["gain"],
+        control_gain=data["control_gain"],
+        terminal_time_gain=data["terminal_time_gain"],
     )
 
 
