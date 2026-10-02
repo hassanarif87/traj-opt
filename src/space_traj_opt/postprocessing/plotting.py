@@ -45,7 +45,7 @@ def plot(
                     y=yi,
                     mode="lines",
                     name=name,
-                    line=dict(color=trace_color),
+                    line={"color": trace_color},
                 )
             )
             continue

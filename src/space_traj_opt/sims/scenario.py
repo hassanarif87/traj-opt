@@ -7,6 +7,7 @@ from scipy.optimize import minimize
 
 from space_traj_opt.models.controller3d import CtrlMode as CtrlMode3D
 from space_traj_opt.models.models import CtrlMode as CtrlMode2D
+from space_traj_opt.optimization.constraints import ConstraintType
 from space_traj_opt.optimization.phases import (
     DynEnum,
     Phase,
@@ -113,6 +114,7 @@ def build_scenario(config: ScenarioConfig) -> BuiltScenario:
         )
 
     terminal = config.terminal
+    terminal_kind = _enum_value(ConstraintType, terminal.kind)
     builder.add_terminal(
         TerminalConditions.set_terminal(
             x_final=np.asarray(terminal.final, dtype=float),
@@ -131,7 +133,7 @@ def build_scenario(config: ScenarioConfig) -> BuiltScenario:
         d0_norm,
         d_bounds_norm,
         normalization_vec,
-        terminal.kind,
+        terminal_kind,
         config.num_states,
         len(terminal.final),
         len(config.phases),
@@ -139,8 +141,14 @@ def build_scenario(config: ScenarioConfig) -> BuiltScenario:
     return BuiltScenario(problem, full_params, normalization_vec, config.num_states)
 
 
-def run_scenario(config: ScenarioConfig):
-    """Run optimization and write the configured trajectory output."""
+def run_scenario(config: ScenarioConfig, out_folder: str | None= None):
+    """Run optimization and write the configured trajectory output.
+    
+    Args:
+        config: Pydantic structs containing full config of a scenario
+        out_folder: out folder relative to OUT_DIR
+
+    """
     built = build_scenario(config)
     constraints = [
         {
@@ -161,16 +169,17 @@ def run_scenario(config: ScenarioConfig):
     )
     x_opt = denormalize_decision_vec(result.x, built.normalization_vec)
     sol_list = built.problem.full_traj_rollout(x_opt, built.full_params)
-    sol_to_csv(sol_list, config.state_headers, config.name)
-    save_metadata(x_opt, built.problem, config.name, result=result)
+    output_path = str(Path(out_folder) / Path(config.name))
+    sol_to_csv(sol_list, config.state_headers, output_path)
+    save_metadata(x_opt, built.problem, output_path, result=result)
     if config.post_process:
         print("Running Post processing: ", config.post_process)
-        postprocess_trajectory(config.name, config)
+        postprocess_trajectory(output_path, config)
     return result
 
 
-def run_scenario_file(path: str | Path):
-    return run_scenario(load_config(path))
+def run_scenario_file(path: str | Path, output: str):
+    return run_scenario(load_config(path) , output)
 
 if __name__ == "__main__":
     run_scenario_file("scenarios/second_stage_ascent.yaml")

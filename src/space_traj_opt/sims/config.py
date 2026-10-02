@@ -2,9 +2,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field, field_validator
-
-from space_traj_opt.optimization.constraints import ConstraintType
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class StateConfig(BaseModel):
@@ -58,17 +56,7 @@ class TerminalConfig(BaseModel):
     final: list[float]
     bounds: Any = None
     normalize: list[float] | None = None
-    kind: ConstraintType = ConstraintType.ON_STATE
-
-    @field_validator("kind", mode="before")
-    @classmethod
-    def parse_kind(cls, value):
-        if isinstance(value, str):
-            try:
-                return ConstraintType[value.upper()]
-            except KeyError:
-                return value
-        return value
+    kind: str = "ON_STATE"
 
 
 class SolverConfig(BaseModel):
