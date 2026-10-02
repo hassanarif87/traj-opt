@@ -451,7 +451,8 @@ def build_gain_table(
         try:
             K = np.linalg.solve(DX.T, DU.T).T
             KT = np.linalg.solve(DX.T, DT.T).T
-            print(f"Condition number: {np.linalg.cond(DX)}")
+            # print(f"Condition number K: {np.linalg.cond(K)}")
+            # print(f"Condition number KT: {np.linalg.cond(KT)}")
 
         except np.linalg.LinAlgError:
             print(f"Warning: Singular DX at index {k}. Using pseudoinverse. Condition number: {np.linalg.cond(DX)}")

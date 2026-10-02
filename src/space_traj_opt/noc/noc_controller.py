@@ -10,7 +10,7 @@ from space_traj_opt.noc.noc_gain_generation import GainTable, load_gain_table
 @dataclass
 class NOCGuidance:
     table: GainTable
-    control_gradient_alpha: float = 0.01
+    control_gradient_alpha: float = 0.8
     previous_control: np.ndarray | None = field(default=None, init=False)
     control_gradient: np.ndarray = field(
         default_factory=lambda: np.zeros(2), init=False
