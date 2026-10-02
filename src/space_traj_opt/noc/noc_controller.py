@@ -36,7 +36,7 @@ class NOCGuidance:
         else:
             control, self.t_togo = self.table.guidance(t, x[0:6])
             
-            if self.previous_control is not None: # and mass > 900:
+            if self.previous_control is not None and self.t_togo >= 35:
                 control_delta = control - self.previous_control
                 alpha = self.control_gradient_alpha
                 self.control_gradient = (

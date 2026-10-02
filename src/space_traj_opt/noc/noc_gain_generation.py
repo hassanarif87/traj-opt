@@ -127,7 +127,7 @@ def interpolate_trajectory(
     state_interp_deriv = np.column_stack([
         np.interp(var_grid, a, state_deriv[:, i])
         for i in range(6)
-    ]) 
+    ])
 
     control_interp = np.column_stack([
         np.interp(var_grid, a, control[:, i])
@@ -174,7 +174,7 @@ class GainTable:
     control_gain: np.ndarray
     terminal_time_gain: np.ndarray
     nominal_state_deriv: np.ndarray
-    
+
 
     def guidance(
         self,
@@ -202,7 +202,7 @@ class GainTable:
 
         if state.shape != (6,):
             raise ValueError("state must have shape (6,)")
-        
+
         # Actual clock time
         t = var
 
@@ -230,9 +230,7 @@ class GainTable:
             t_index -= epsilon
         # print(epsilon)
 
-        # ------------------------------------------------------------
         # Normal neighboring-optimal feedback, but indexed by t_index
-        # ------------------------------------------------------------
 
         x_nom = self._interpolate_nominal_state(t_index)
         u_nom = self._interpolate_nominal_control(t_index)
@@ -258,11 +256,11 @@ class GainTable:
             )
             for i in range(6)
         ])
-    
+
     def _interpolate_nominal_state_deriv(self, var: float) -> np.ndarray:
         """
         Interpolate nominal state derivative for a given var.
-        """ 
+        """
         return np.array([
             np.interp(
                 var,
@@ -275,7 +273,7 @@ class GainTable:
     def _interpolate_nominal_state(self, var: float) -> np.ndarray:
         """
         Interpolate nominal state for a given var.
-        """ 
+        """
         return np.array([
             np.interp(
                 var,
@@ -287,7 +285,7 @@ class GainTable:
     def _interpolate_nominal_control(self, var: float) -> np.ndarray:
         """
         Interpolate nominal control for a given var.
-        """ 
+        """
 
         nominal_control = np.array([
             np.interp(
@@ -298,7 +296,7 @@ class GainTable:
             for i in range(2)
         ])
         return nominal_control
-    
+
     def _interpolate_control_gain(self, var: float) -> np.ndarray:
         # Interpolate each control_gain element.
         K = np.empty((2, 6))
@@ -453,6 +451,7 @@ def build_gain_table(
         try:
             K = np.linalg.solve(DX.T, DU.T).T
             KT = np.linalg.solve(DX.T, DT.T).T
+            print(f"Condition number: {np.linalg.cond(DX)}")
 
         except np.linalg.LinAlgError:
             print(f"Warning: Singular DX at index {k}. Using pseudoinverse. Condition number: {np.linalg.cond(DX)}")
@@ -517,4 +516,3 @@ def load_gain_table(
 
 if __name__ == "__main__":
     print("None")
-   
